@@ -1,1 +1,0 @@
-/usr/bin/c++   -std=c++0x -fopenmp -g    -rdynamic CMakeFiles/Parallel_computing.dir/main.cpp.o  -o Parallel_computing 
