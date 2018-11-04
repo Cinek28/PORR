@@ -1,4 +1,4 @@
-##### Parallel and distributed programming
+#### Parallel and distributed programming
 
 The project is developed for university course completion. The main task of the project is to
 learn OpenMP and OpenCL to check differences in computing between sequential and parallel programs.
