@@ -1,0 +1,3 @@
+/home/marcin/GIT/PORR/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/marcin/GIT/PORR/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/marcin/GIT/PORR/cmake-build-debug/CMakeFiles/Parallel_computing.dir
