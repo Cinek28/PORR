@@ -57,15 +57,39 @@ void initialTest(int argc, char* argv[]) {
               << " milliseconds" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
-    //initialTest(argc, argv);
-    CoevolutionEngineST coevolutionEngineST = CoevolutionEngineST();
+void zeroTest(){
+    CoevolutionEngineST coevolutionEngineST = CoevolutionEngineST(10, 0, 0, 0, 0, 0);
 
     double zeroVector[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    int f1Result = coevolutionEngineST.calculateF1(zeroVector, 10);
-    int f2Result = coevolutionEngineST.calculateF2(zeroVector, 10);
+    int f1Result = coevolutionEngineST.CalculateF1(zeroVector);
+    int f2Result = coevolutionEngineST.CalculateF2(zeroVector);
 
     printf("F1: %lf\n", f1Result);
     printf("F2: %lf\n", f2Result);
+}
+
+int main(int argc, char* argv[]) {
+    //initialTest(argc, argv);
+    int argumentsCount = 10, populationsCount = 4, populationSize = 20;
+    double lowerBound = -40, upperBound = 40, desiredError = 0.1;
+    CoevolutionEngineST coevEngST = CoevolutionEngineST(argumentsCount, populationsCount, populationSize, lowerBound, upperBound, desiredError);
+
+    Population * populations = new Population[populationsCount];
+
+    for(int i = 0; i < populationsCount; i++){
+        populations[i] = coevEngST.InitializePopulation();
+        coevEngST.CalculateFitnessF1(populations[i]);
+    }
+
+    while(!coevEngST.CheckTerminationCriteria(populations)){
+        for(int i=0;i<populationsCount;i++){
+            //CROSSING-OVER
+            //MUTATION
+            //CALCULATE FITNESS
+            //MAKE A SELECTION OF THE BEST INDIVIDUALS
+        }
+    }
+
+    return 0;
 }
