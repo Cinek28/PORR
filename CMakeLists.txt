@@ -2,14 +2,20 @@ cmake_minimum_required (VERSION 2.6)
 cmake_policy(SET CMP0012 NEW)
 project (Parallel_computing)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++0x -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")
 
 if(Debug)
   message("Debug is on")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Og")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og")
+else()
+  message("Release is on")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 endif(Debug)
+
+
 
 find_package(OpenMP)
 if(OPENMP_FOUND)
