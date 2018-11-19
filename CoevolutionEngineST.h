@@ -10,26 +10,15 @@
 
 #include <random>
 
-class Individual{
-public:
-    double * x;
-    double output;
-    double error;
-};
-
-class Population{
-public:
-    Individual * Individuals;
-};
 
 class CoevolutionEngineST {
 
 private:
     int populationsCount, populationSize, argumentsCount;
-    double lowerBound, upperBound, desiredError, speed;
+    double desiredError, speed;
     std::default_random_engine generator;
 public:
-    CoevolutionEngineST(int argumentsCount, int populationsCount, int populationSize, double lowerBound, double upperBound, double desiredError);
+    CoevolutionEngineST(int & argumentsCount, unsigned int & populationsCount, unsigned int & populationSize, double desiredError);
 
     double CalculateF1(double *x);
     double CalculateF2(double *x);

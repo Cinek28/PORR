@@ -3,17 +3,14 @@
 //
 
 #include "CoevolutionEngineST.h"
+#include "Population.h"
 #include <math.h>
 #include <random>
 
-#define M_PI 3.14159265358979323846
-#define M_E 2.718281828459
 #define MUTATION_PROBABILITY 0.1
 #define CROSSING_OVER_PERCENTAGE 0.25
 
-CoevolutionEngineST::CoevolutionEngineST(int argumentsCount, int populationsCount, int populationSize, double lowerBound, double upperBound, double desiredError) {
-    this->lowerBound = lowerBound;
-    this->upperBound = upperBound;
+CoevolutionEngineST::CoevolutionEngineST(int argumentsCount, int populationsCount, double desiredError) {
     this->argumentsCount = argumentsCount;
     this->desiredError = desiredError;
     this->populationsCount = populationsCount;
