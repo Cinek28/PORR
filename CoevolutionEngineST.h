@@ -9,28 +9,42 @@
 #define F2_DESIRED_VALUE 0
 
 #include <random>
-
+#include <iostream>
+#include "Population.h"
 
 class CoevolutionEngineST {
 
 private:
-    int populationsCount, populationSize, argumentsCount;
-    double desiredError, speed;
-    std::default_random_engine generator;
+
+    unsigned int mNoOfItersWithoutImprov = 20;
+    double mDesiredError = 0.1;
+    std::default_random_engine mGenerator;
+    std::unique_ptr<Population> pCalcPopulation = nullptr;
+
 public:
-    CoevolutionEngineST(int & argumentsCount, unsigned int & populationsCount, unsigned int & populationSize, double desiredError);
+
+    enum engineStopCriteria
+    {
+        NO_OF_ITERS_WITHOUT_IMPROV = 0,
+        DESIRED_ERROR
+    };
+
+    CoevolutionEngineST(const double & desiredError = 0.1, unsigned int noOfItersWithoutImprov = 20);
+
+    bool setPopulation(const size_t &popSize, const size_t childCnt, const size_t & genSize,
+                       const double lowerBound = -1.0, const double upperBound = 1.0);
+
+    bool init(const double & lowerBound, const double & upperBound);
+
+    bool solve(std::function<void (Genotype, Genotype)> func, engineStopCriteria criteria);
 
     double CalculateF1(double *x);
     double CalculateF2(double *x);
-    Population InitializePopulation();
 
     void CalculateFitnessF1(Population population);
     void CalculateFitnessF2(Population population);
 
-    bool CheckTerminationCriteria(Population populations[]);
-
-    Individual * PerformCrossingOver(Population population);
-    void PerformMutation(Individual children[]);
+    bool CheckTerminationCriteria();
 
 };
 

@@ -7,6 +7,8 @@
 
 #include <vector>
 #include <memory>
+#include <iostream>
+#include <functional>
 
 //struct Genotype
 //{
@@ -37,6 +39,8 @@ public:
     void cross(const double & crossingCoeff);
 
     void mutate(const double & normalDistVariance);
+
+    const Genotype * getBestFit(std::function<void (Genotype)> func);
 
     size_t getPopulationSize() const { return mPopulationSize;};
     size_t getChildrenCount() const { return mChildrenCount;};
