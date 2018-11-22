@@ -13,39 +13,47 @@
 #include "Population.h"
 
 class CoevolutionEngineST {
-
-private:
-
-    unsigned int mNoOfItersWithoutImprov = 20;
-    double mDesiredError = 0.1;
-    std::default_random_engine mGenerator;
-    std::unique_ptr<Population> pCalcPopulation = nullptr;
-
 public:
-
     enum engineStopCriteria
     {
         NO_OF_ITERS_WITHOUT_IMPROV = 0,
         DESIRED_ERROR
     };
 
-    CoevolutionEngineST(const double & desiredError = 0.1, unsigned int noOfItersWithoutImprov = 20);
+private:
+
+    unsigned int mNoOfItersWithoutImprov;
+    double mDesiredError, mBestFitError;
+    std::default_random_engine mGenerator;
+    std::unique_ptr<Population> pCalcPopulation = nullptr;
+
+    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters);
+
+public:
+
+    CoevolutionEngineST(const double & desiredError = 0.1,const unsigned int & noOfItersWithoutImprov = 20):
+            mNoOfItersWithoutImprov(noOfItersWithoutImprov),
+            mDesiredError(desiredError)
+    {
+        mGenerator.seed(time(NULL));
+    };
 
     bool setPopulation(const size_t &popSize, const size_t childCnt, const size_t & genSize,
                        const double lowerBound = -1.0, const double upperBound = 1.0);
 
     bool init(const double & lowerBound, const double & upperBound);
 
-    bool solve(std::function<void (Genotype, Genotype)> func, engineStopCriteria criteria);
+    const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria);
 
-    double CalculateF1(double *x);
-    double CalculateF2(double *x);
+    double getDesiredError() const {return mDesiredError;};
+    void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};
 
-    void CalculateFitnessF1(Population population);
-    void CalculateFitnessF2(Population population);
+    double getBestFitError();
 
-    bool CheckTerminationCriteria();
+    unsigned int getNoOfItersWithoutImprov() const {return mNoOfItersWithoutImprov;};
+    void setNoOfItersWithoutImprov(const unsigned int noOfIters) {mNoOfItersWithoutImprov = noOfIters;};
 
+    void printPopulation();
 };
 
 #endif //PARALLEL_COMPUTING_COEVOLUTIONENGINEST_H

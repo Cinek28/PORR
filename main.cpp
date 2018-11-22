@@ -56,38 +56,63 @@ void initialTest(int argc, char* argv[]) {
               << " milliseconds" << std::endl;
 }
 
-void zeroTest(){
-    CoevolutionEngineST coevolutionEngineST = CoevolutionEngineST(10, 0, 0, 0, 0, 0);
-
-    double zeroVector[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-    int f1Result = coevolutionEngineST.CalculateF1(zeroVector);
-    int f2Result = coevolutionEngineST.CalculateF2(zeroVector);
-
-    printf("F1: %lf\n", f1Result);
-    printf("F2: %lf\n", f2Result);
-}
+//void zeroTest(){
+//    CoevolutionEngineST coevolutionEngineST = CoevolutionEngineST(10, 0, 0, 0, 0, 0);
+//
+//    double zeroVector[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//
+//    int f1Result = coevolutionEngineST.CalculateF1(zeroVector);
+//    int f2Result = coevolutionEngineST.CalculateF2(zeroVector);
+//
+//    printf("F1: %lf\n", f1Result);
+//    printf("F2: %lf\n", f2Result);
+//}
 
 int main(int argc, char* argv[]) {
-    //initialTest(argc, argv);
-    int argumentsCount = 10, populationsCount = 4, populationSize = 20;
-    double lowerBound = -40, upperBound = 40, desiredError = 0.1;
-    CoevolutionEngineST coevEngST = CoevolutionEngineST(argumentsCount, populationsCount, populationSize, lowerBound, upperBound, desiredError);
 
-    Population * populations = new Population[populationsCount];
+    CoevolutionEngineST cov;
 
-    for(int i = 0; i < populationsCount; i++){
-        populations[i] = coevEngST.InitializePopulation();
-        coevEngST.CalculateFitnessF1(populations[i]);
+    cov.setPopulation(20,8,1, -40, 40);
+
+    std::function<double (Genotype)> optimizedFunc1 = [](Genotype genotype)
+        {
+            double sum = 0;
+            double prod = 1.0;
+            //TODO: Could be parallel
+            for(unsigned int i = 0; i < genotype.size();++i)
+            {
+                sum += pow(genotype[i].first,2);
+                prod *= cos(genotype[i].first/(i+1));
+            }
+            return 1./40.0*sum+1-prod;
+        };
+
+    std::function<double (Genotype)> optimizedFunc2 = [](Genotype genotype)
+    {
+        double sum = 0;
+        //TODO: Could be parallel
+        for(unsigned int i = 0; i < genotype.size();++i)
+        {
+            sum += pow(genotype[i].first,2);
+        }
+        return sum;
+    };
+
+    const Genotype* gen1 = cov.solve(optimizedFunc1, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
+    std::cout << "Solution: " << std::endl;
+    for(unsigned int i = 0; i < gen1->size(); ++i)
+    {
+        std::cout << gen1->at(i).first << " ";
     }
 
-    while(!coevEngST.CheckTerminationCriteria(populations)){
-        for(int i=0;i<populationsCount;i++){
-            //CROSSING-OVER
-            //MUTATION
-            //CALCULATE FITNESS
-            //MAKE A SELECTION OF THE BEST INDIVIDUALS
-        }
+    cov.setPopulation(20,8,2, -40, 40);
+    cov.setDesiredError(0.000001);
+    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::DESIRED_ERROR);
+
+    std::cout << "Solution: " << std::endl;
+    for(unsigned int i = 0; i < gen2->size(); ++i)
+    {
+        std::cout << gen2->at(i).first << ", ";
     }
 
     return 0;

@@ -9,20 +9,7 @@
 #include <memory>
 #include <iostream>
 #include <functional>
-
-//struct Genotype
-//{
-//
-//public:
-//
-//    Genotype(const size_t & size = 1)
-//    {
-//        pData.reset(nullptr);
-//        pData = std::make_unique<std::vector<std::pair<double,double>>>(mSize);
-//    };
-//
-//    std::unique_ptr<std::vector<std::pair<double,double>>> pData = nullptr;
-//};
+#include <random>
 
 
 typedef std::vector<std::pair<double,double>> Genotype;
@@ -36,11 +23,13 @@ public:
 
     void init(const int & lowerBound, const int & upperBound);
 
-    void cross(const double & crossingCoeff);
+    void cross(const double &crossingCoeff, std::default_random_engine &generator);
 
-    void mutate(const double & normalDistVariance);
+    void mutate(const double &normalDistVariance, std::default_random_engine &generator);
 
-    const Genotype * getBestFit(std::function<void (Genotype)> func);
+    const Genotype * getBestFit(std::function<double (Genotype &)> func);
+
+    const Genotype * at(unsigned int index);
 
     size_t getPopulationSize() const { return mPopulationSize;};
     size_t getChildrenCount() const { return mChildrenCount;};
@@ -48,6 +37,8 @@ public:
 
     double getUpperBound() const {return mUpperBound;};
     double getLowerBound() const {return mLowerBound;};
+
+    void printPopulation() const;
 
 private:
 

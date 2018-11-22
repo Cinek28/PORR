@@ -3,24 +3,18 @@
 //
 
 #include "CoevolutionEngineST.h"
-#include <math.h>
-#include <memory>
 
-#define MUTATION_PROBABILITY 0.1
+#define MUTATION_VARIANCE 0.1
 #define CROSSING_OVER_PERCENTAGE 0.25
 
-CoevolutionEngineST::CoevolutionEngineST( const double &desiredError,
-                                         unsigned int noOfItersWithoutImprov):
-    mDesiredError(desiredError),
-    mNoOfItersWithoutImprov(noOfItersWithoutImprov) {}
 
 bool CoevolutionEngineST::setPopulation(const size_t &popSize, const size_t childCnt, const size_t &genSize,
-                                        const double lowerBound = -1.0, const double upperBound = 1.0)
+                                        const double lowerBound, const double upperBound)
 {
     if(popSize < childCnt || lowerBound > upperBound)
         return false;
 
-    pCalcPopulation.reset(std::make_unique<Population>(popSize, childCnt,genSize));
+    pCalcPopulation.reset(new Population(popSize, childCnt,genSize));
     return init(lowerBound, upperBound);
 }
 
@@ -37,56 +31,73 @@ bool CoevolutionEngineST::init(const double &lowerBound, const double &upperBoun
     return true;
 }
 
-bool CoevolutionEngineST::solve(std::function<void(Genotype, Genotype)> func, engineStopCriteria criteria)
+const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria)
 {
     if(pCalcPopulation == nullptr)
+    {
         std::cout << "Population not set" << std::endl;
-        return false;
-
-    pCalcPopulation()
-}
-
-double CoevolutionEngineST::CalculateF1(double *x){
-    double ex2 = 0, prodcosxi = 1;
-    for(int i = 0; i < argumentsCount; i++){
-        ex2 += x[i] * x[i];
-        prodcosxi = prodcosxi*cos(x[i]/i);
+        return nullptr;
     }
-    return ex2 / 40 + 1 - prodcosxi;
+    unsigned int iters = 0;
 
-}
+    mBestFitError = getBestFitError();
 
-double CoevolutionEngineST::CalculateF2(double *x){
-    double ex2 = 0, ecos2px = 0, exp1 = 0, exp2 = 0;
-    for(int i = 0; i < argumentsCount; i++){
-        ex2 += x[i] * x[i];
-        ecos2px += cos(2 * M_PI * x[i]);
+    std::cout << "Starting optimization. Iter 0." << std::endl;
+
+    while(!CheckTerminationCriteria(criteria, iters))
+    {
+        std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
+        pCalcPopulation->cross(CROSSING_OVER_PERCENTAGE, mGenerator);
+        pCalcPopulation->mutate(MUTATION_VARIANCE, mGenerator);
+        pCalcPopulation->getBestFit(func);
+        printPopulation();
     }
-    exp1 = exp(-0.2 * sqrt(ex2 / argumentsCount));
-    exp2 = exp(ecos2px / argumentsCount);
-    return 20 * exp1 - exp2 + 20 + M_E;
+
+    std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
+    return pCalcPopulation->at(0);
 }
 
-void CoevolutionEngineST::CalculateFitnessF1(Population population) {
-    for(int i=0;i<populationsCount;i++){
-        population.Individuals[i].output = CalculateF1(population.Individuals[i].x);
-        population.Individuals[i].error = abs(population.Individuals[i].output - F1_DESIRED_VALUE);
-    }
-}
 
-void CoevolutionEngineST::CalculateFitnessF2(Population population) {
-    for(int i=0;i<populationsCount;i++){
-        population.Individuals[i].output = CalculateF2(population.Individuals[i].x);
-        population.Individuals[i].error = abs(population.Individuals[i].output - F2_DESIRED_VALUE);
-    }
-}
+bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters)
+{
+    double thisIterBestError = getBestFitError();
 
-bool CoevolutionEngineST::CheckTerminationCriteria(Population *populations) {
-    for(int i=0;i<populationsCount;i++){
-        for(int j=0;j<populationSize;j++){
-            if(populations[j].Individuals[j].error <= desiredError)
-                return true;
+    if(criteria == DESIRED_ERROR)
+    {
+        if(thisIterBestError < mDesiredError)
+        {
+            mBestFitError = thisIterBestError;
+            return true;
         }
     }
+    else if(criteria == NO_OF_ITERS_WITHOUT_IMPROV)
+    {
+        if(iters > mNoOfItersWithoutImprov)
+        {
+            return true;
+        }
+    }
+    if(mBestFitError <= thisIterBestError)
+        ++iters;
+    else
+        iters = 0;
+
+    mBestFitError = thisIterBestError;
     return false;
+}
+
+double CoevolutionEngineST::getBestFitError()
+{   //Calculating error ONLY (!!) where function minimum is point (0,0,0,...)
+    //Fit error calculated as MEAN SQUARE ERROR of all values:
+    double bestFitError = 0;
+    for(unsigned int i = 0; i < pCalcPopulation->at(0)->size();++i)
+    {
+        bestFitError += pow(((pCalcPopulation->at(0))->at(i)).first,2)/pCalcPopulation->at(0)->size();
+    }
+    return bestFitError;
+}
+
+void CoevolutionEngineST::printPopulation()
+{
+    pCalcPopulation->printPopulation();
 }
