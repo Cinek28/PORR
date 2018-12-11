@@ -1,4 +1,3 @@
-#include <omp.h>
 #include <chrono>
 #include <iostream>
 #include "CoevolutionEngineST.h"
@@ -56,23 +55,12 @@ void initialTest(int argc, char* argv[]) {
               << " milliseconds" << std::endl;
 }
 
-//void zeroTest(){
-//    CoevolutionEngineST coevolutionEngineST = CoevolutionEngineST(10, 0, 0, 0, 0, 0);
-//
-//    double zeroVector[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-//
-//    int f1Result = coevolutionEngineST.CalculateF1(zeroVector);
-//    int f2Result = coevolutionEngineST.CalculateF2(zeroVector);
-//
-//    printf("F1: %lf\n", f1Result);
-//    printf("F2: %lf\n", f2Result);
-//}
 
 int main(int argc, char* argv[]) {
 
     CoevolutionEngineST cov;
 
-    cov.setPopulation(20,8,1, -40, 40);
+    cov.setPopulation(100,20,1, -40, 40);
 
     std::function<double (Genotype)> optimizedFunc1 = [](Genotype genotype)
         {
@@ -105,9 +93,10 @@ int main(int argc, char* argv[]) {
         std::cout << gen1->at(i).first << " ";
     }
 
-    cov.setPopulation(20,8,2, -40, 40);
-    cov.setDesiredError(0.000001);
-    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::DESIRED_ERROR);
+    cov.setPopulation(100,20,2, -40, 40);
+//    cov.setDesiredError(0.000001);
+    cov.setNoOfItersWithoutImprov(1000);
+    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
 
     std::cout << "Solution: " << std::endl;
     for(unsigned int i = 0; i < gen2->size(); ++i)

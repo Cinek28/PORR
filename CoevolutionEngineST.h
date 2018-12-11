@@ -5,11 +5,9 @@
 #ifndef PARALLEL_COMPUTING_COEVOLUTIONENGINEST_H
 #define PARALLEL_COMPUTING_COEVOLUTIONENGINEST_H
 
-#define F1_DESIRED_VALUE 0
-#define F2_DESIRED_VALUE 0
-
 #include <random>
 #include <iostream>
+#include <omp.h>
 #include "Population.h"
 
 class CoevolutionEngineST {
@@ -24,7 +22,7 @@ private:
 
     unsigned int mNoOfItersWithoutImprov;
     double mDesiredError, mBestFitError;
-    std::default_random_engine mGenerator;
+    std::vector<std::mt19937> mGenerator;
     std::unique_ptr<Population> pCalcPopulation = nullptr;
 
     bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters);
@@ -35,8 +33,17 @@ public:
             mNoOfItersWithoutImprov(noOfItersWithoutImprov),
             mDesiredError(desiredError)
     {
-        mGenerator.seed(time(NULL));
+        for(int i = 0; i < omp_get_max_threads(); ++i)
+        {
+            mGenerator.emplace_back(get_prng());
+        }
     };
+
+    std::mt19937 get_prng() {
+        std::random_device r("/dev/urandom");
+        std::seed_seq seed{r(), r(), r(), r(), r(), r(), r(), r()};
+        return std::mt19937(seed);
+    }
 
     bool setPopulation(const size_t &popSize, const size_t childCnt, const size_t & genSize,
                        const double lowerBound = -1.0, const double upperBound = 1.0);

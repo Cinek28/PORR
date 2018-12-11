@@ -23,9 +23,9 @@ public:
 
     void init(const int & lowerBound, const int & upperBound);
 
-    void cross(const double &crossingCoeff, std::default_random_engine &generator);
+    void cross(const double &crossingCoeff, std::vector<std::mt19937> &generator);
 
-    void mutate(const double &normalDistVariance, std::default_random_engine &generator);
+    void mutate(const double &normalDistVariance, std::vector<std::mt19937> &generator);
 
     const Genotype * getBestFit(std::function<double (Genotype &)> func);
 
@@ -39,6 +39,8 @@ public:
     double getLowerBound() const {return mLowerBound;};
 
     void printPopulation() const;
+
+    double randNorm(double mu, double sigma, std::mt19937& generator);
 
 private:
 

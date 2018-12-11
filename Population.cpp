@@ -4,8 +4,7 @@
 
 #include "Population.h"
 #include <algorithm>
-#include <random>
-#include <cmath>
+#include <omp.h>
 
 
 Population::Population(const size_t &popSize, const size_t &childCnt, const size_t &genSize):
@@ -58,7 +57,7 @@ const Genotype * Population::getBestFit(std::function<double (Genotype &)> func)
     return bestFittingGenotype;
 }
 
-void Population::cross(const double &crossingCoeff, std::default_random_engine &generator)
+void Population::cross(const double &crossingCoeff, std::vector<std::mt19937> &generator)
 {
     unsigned int noOfCrossedGenotypes = mChildrenCount;
     if(crossingCoeff < 1.0 && crossingCoeff >= 0.0)
@@ -67,33 +66,34 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
     //Randomly shuffle elements and get just first <crossingCoeff>*children_size number of elements:
     auto iter = std::next(pPopulationData->begin(), mPopulationSize);
     std::random_shuffle ( pPopulationData->begin(), iter );
-
-    std::uniform_int_distribution<int> uniformDist(0,1);
-
     //TODO: OMP Parallel
-    for(unsigned int i = 0; i < noOfCrossedGenotypes; ++i)
-    {
-        for(unsigned int j = 0; j < pPopulationData->at(i)->size(); ++j)
-        {
-            pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + uniformDist(generator))->at(j);
+    unsigned int size = pPopulationData->at(0)->size(); // all vectors are of the same size
+    #pragma omp parallel for schedule(static) collapse(2) default(shared)
+    for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
+        for (unsigned int j = 0; j < size; ++j) {
+            pPopulationData->at(i + mPopulationSize)->at(j) =
+                    pPopulationData->at(i + i%2)->at(j);
         }
     }
 }
 
-void Population::mutate(const double &normalDistVariance, std::default_random_engine &generator)
+void Population::mutate(const double &normalDistVariance, std::vector<std::mt19937> &generator)
 {
-    std::normal_distribution<double> distribution(0.0,normalDistVariance);
+    unsigned int size = pPopulationData->at(0)->size(); // all vectors are of the same size
     //TODO: OMP Parallel
-    for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
-    {
-        for(unsigned int j = 0; j < pPopulationData->at(i)->size(); ++j)
-        {
-            pPopulationData->at(i)->at(j).second *= exp(distribution(generator));
-            std::normal_distribution<double> distr(0.0,pPopulationData->at(i)->at(j).second);
-            pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second*distr(generator);
-            if(pPopulationData->at(i)->at(j).first > mUpperBound)
+    #pragma omp parallel for schedule(static) collapse(2) default(shared)
+    for (unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i) {
+        for (unsigned int j = 0; j < size; ++j) {
+
+            pPopulationData->at(i)->at(j).second *= exp(randNorm(0.0, normalDistVariance,
+                                                                 generator[omp_get_thread_num()]));
+
+            pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second
+                                                   * randNorm(0.0, pPopulationData->at(i)->at(j).second,
+                                                              generator[omp_get_thread_num()]);
+            if (pPopulationData->at(i)->at(j).first > mUpperBound)
                 pPopulationData->at(i)->at(j).first = mUpperBound;
-            else if(pPopulationData->at(i)->at(j).first < mLowerBound)
+            else if (pPopulationData->at(i)->at(j).first < mLowerBound)
                 pPopulationData->at(i)->at(j).first = mLowerBound;
         }
     }
@@ -110,4 +110,22 @@ void Population::printPopulation() const
         }
         std::cout << "} " << std::endl; }
     );
+}
+
+double Population::randNorm (double mu, double sigma, std::mt19937& generator)
+{
+    double U1, U2, W, mult;
+    double X1;
+    do
+    {
+        U1 = -1 + ((double)generator()/generator.max()) * 2;
+        U2 = -1 + ((double)generator()/generator.max()) * 2;
+        W = pow (U1, 2) + pow (U2, 2);
+    }
+    while (W >= 1 || W == 0);
+
+    mult = sqrt ((-2 * log (W)) / W);
+    X1 = U1 * mult;
+
+    return (mu + sigma * X1);
 }
