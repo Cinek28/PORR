@@ -4,8 +4,6 @@
 
 #include "Population.h"
 #include <algorithm>
-#include <random>
-#include <cmath>
 
 
 Population::Population(const size_t &popSize, const size_t &childCnt, const size_t &genSize):
@@ -24,15 +22,16 @@ void Population::init(const int &lowerBound, const int &upperBound)
     mLowerBound = lowerBound;
     mUpperBound = upperBound;
 
-    srand48(time(nullptr));
-
     std::cout << "Initiating population" << std::endl;
+    std::random_device r;
+    std::default_random_engine generator(r());
+    std::uniform_real_distribution<double> uniformDist(0.0,1.0);
 
     for_each(pPopulationData->begin(), pPopulationData->end(), [&](std::unique_ptr<Genotype> &  genotype) {
         std::cout << "Genotype: { ";
         for(unsigned int i = 0; i < genotype->size(); ++i)
         {
-            genotype->at(i).first = mLowerBound + (mUpperBound - mLowerBound) * drand48();
+            genotype->at(i).first = mLowerBound + (mUpperBound - mLowerBound) * uniformDist(generator);
             genotype->at(i).second = drand48();
             std::cout << "x[" << i << "]=" << genotype->at(i).first << ", s[" << i << "]=" << genotype->at(i).second << ", ";
         }
@@ -70,10 +69,12 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
 
     std::uniform_int_distribution<int> uniformDist(0,1);
 
+    unsigned int size = pPopulationData->at(0)->size();
     //TODO: OMP Parallel
+    #pragma omp for simd collapse(2)
     for(unsigned int i = 0; i < noOfCrossedGenotypes; ++i)
     {
-        for(unsigned int j = 0; j < pPopulationData->at(i)->size(); ++j)
+        for(unsigned int j = 0; j < size; ++j)
         {
             pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + uniformDist(generator))->at(j);
         }
@@ -84,9 +85,11 @@ void Population::mutate(const double &normalDistVariance, std::default_random_en
 {
     std::normal_distribution<double> distribution(0.0,normalDistVariance);
     //TODO: OMP Parallel
+    unsigned int size = pPopulationData->at(0)->size();
+    #pragma omp for simd collapse(2)
     for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
     {
-        for(unsigned int j = 0; j < pPopulationData->at(i)->size(); ++j)
+        for(unsigned int j = 0; j < size; ++j)
         {
             pPopulationData->at(i)->at(j).second *= exp(distribution(generator));
             std::normal_distribution<double> distr(0.0,pPopulationData->at(i)->at(j).second);

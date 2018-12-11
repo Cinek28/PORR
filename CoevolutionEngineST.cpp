@@ -46,11 +46,11 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
 
     while(!CheckTerminationCriteria(criteria, iters))
     {
-        std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
+//        std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
         pCalcPopulation->cross(CROSSING_OVER_PERCENTAGE, mGenerator);
         pCalcPopulation->mutate(MUTATION_VARIANCE, mGenerator);
         pCalcPopulation->getBestFit(func);
-        printPopulation();
+//        printPopulation();
     }
 
     std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;

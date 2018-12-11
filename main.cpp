@@ -1,7 +1,8 @@
-#include <omp.h>
 #include <chrono>
 #include <iostream>
 #include "CoevolutionEngineST.h"
+
+#define OMP_THREAD_NUM 1
 
 double test_parallel(int num_steps) {
     int i;
@@ -105,9 +106,9 @@ int main(int argc, char* argv[]) {
         std::cout << gen1->at(i).first << " ";
     }
 
-    cov.setPopulation(20,8,2, -40, 40);
-    cov.setDesiredError(0.000001);
-    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::DESIRED_ERROR);
+    cov.setPopulation(500,80,2, -40, 40);
+    cov.setNoOfItersWithoutImprov(500);
+    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
 
     std::cout << "Solution: " << std::endl;
     for(unsigned int i = 0; i < gen2->size(); ++i)
