@@ -2,7 +2,6 @@
 #include <iostream>
 #include "CoevolutionEngineST.h"
 
-#define OMP_THREAD_NUM 1
 
 double test_parallel(int num_steps) {
     int i;
@@ -57,23 +56,12 @@ void initialTest(int argc, char* argv[]) {
               << " milliseconds" << std::endl;
 }
 
-//void zeroTest(){
-//    CoevolutionEngineST coevolutionEngineST = CoevolutionEngineST(10, 0, 0, 0, 0, 0);
-//
-//    double zeroVector[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-//
-//    int f1Result = coevolutionEngineST.CalculateF1(zeroVector);
-//    int f2Result = coevolutionEngineST.CalculateF2(zeroVector);
-//
-//    printf("F1: %lf\n", f1Result);
-//    printf("F2: %lf\n", f2Result);
-//}
 
 int main(int argc, char* argv[]) {
 
     CoevolutionEngineST cov;
 
-    cov.setPopulation(20,8,1, -40, 40);
+    cov.setPopulation(100,20,1, -40, 40);
 
     std::function<double (Genotype)> optimizedFunc1 = [](Genotype genotype)
         {
@@ -108,6 +96,7 @@ int main(int argc, char* argv[]) {
 
     cov.setPopulation(500,80,2, -40, 40);
     cov.setNoOfItersWithoutImprov(500);
+
     const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
 
     std::cout << "Solution: " << std::endl;

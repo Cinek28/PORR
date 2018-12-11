@@ -71,7 +71,7 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
 
     unsigned int size = pPopulationData->at(0)->size();
     //TODO: OMP Parallel
-    #pragma omp for simd collapse(2)
+//    #pragma omp for simd collapse(2)
     for(unsigned int i = 0; i < noOfCrossedGenotypes; ++i)
     {
         for(unsigned int j = 0; j < size; ++j)
@@ -83,10 +83,10 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
 
 void Population::mutate(const double &normalDistVariance, std::default_random_engine &generator)
 {
-    std::normal_distribution<double> distribution(0.0,normalDistVariance);
+    unsigned int size = pPopulationData->at(0)->size(); // all vectors are of the same size
     //TODO: OMP Parallel
-    unsigned int size = pPopulationData->at(0)->size();
-    #pragma omp for simd collapse(2)
+    std::normal_distribution<double> distribution(0.0,normalDistVariance);
+//    #pragma omp for simd collapse(2)
     for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
     {
         for(unsigned int j = 0; j < size; ++j)
@@ -96,7 +96,7 @@ void Population::mutate(const double &normalDistVariance, std::default_random_en
             pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second*distr(generator);
             if(pPopulationData->at(i)->at(j).first > mUpperBound)
                 pPopulationData->at(i)->at(j).first = mUpperBound;
-            else if(pPopulationData->at(i)->at(j).first < mLowerBound)
+            else if (pPopulationData->at(i)->at(j).first < mLowerBound)
                 pPopulationData->at(i)->at(j).first = mLowerBound;
         }
     }

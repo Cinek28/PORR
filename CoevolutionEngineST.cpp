@@ -39,10 +39,9 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
         return nullptr;
     }
     unsigned int iters = 0;
-
     mBestFitError = getBestFitError();
 
-    std::cout << "Starting optimization. Iter 0." << std::endl;
+//    std::cout << "Starting optimization. Iter 0." << std::endl;
 
     while(!CheckTerminationCriteria(criteria, iters))
     {
@@ -53,7 +52,8 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
 //        printPopulation();
     }
 
-    std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
+//    std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
+//    std::cout << "All iters: " << allIters << std::endl;
     return pCalcPopulation->at(0);
 }
 

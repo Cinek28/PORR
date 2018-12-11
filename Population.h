@@ -40,6 +40,7 @@ public:
 
     void printPopulation() const;
 
+
 private:
 
     std::unique_ptr<std::vector<std::unique_ptr<Genotype>>> pPopulationData;

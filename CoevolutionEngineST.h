@@ -5,15 +5,14 @@
 #ifndef PARALLEL_COMPUTING_COEVOLUTIONENGINEST_H
 #define PARALLEL_COMPUTING_COEVOLUTIONENGINEST_H
 
-#define F1_DESIRED_VALUE 0
-#define F2_DESIRED_VALUE 0
-
 #include <random>
 #include <iostream>
+#include <omp.h>
 #include "Population.h"
 
 class CoevolutionEngineST {
 public:
+
     enum engineStopCriteria
     {
         NO_OF_ITERS_WITHOUT_IMPROV = 0,
@@ -35,7 +34,8 @@ public:
             mNoOfItersWithoutImprov(noOfItersWithoutImprov),
             mDesiredError(desiredError)
     {
-        mGenerator.seed(time(NULL));
+        std::random_device r;
+        mGenerator.seed(r());
     };
 
     bool setPopulation(const size_t &popSize, const size_t childCnt, const size_t & genSize,
