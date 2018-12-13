@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <ctime>
+#include <cstring>
 
 # define NUMBER_THREADS 10
 
@@ -38,9 +39,10 @@ void write_text_to_log_file( const std::string &text )
     time_t _tm =time(NULL );
     struct tm * curtime = localtime ( &_tm );
     auto datetimeNow = asctime(curtime);
+    datetimeNow[strlen(datetimeNow) - 1] = 0;
     std::ofstream log_file(
-            "../results/log_file.txt", std::ios_base::out | std::ios_base::app );
-    log_file << datetimeNow << text << std::endl;
+            "../results/log_file.log", std::ios_base::out | std::ios_base::app );
+    log_file << datetimeNow << " | " << text << std::endl;
 
 }
 
@@ -103,6 +105,18 @@ void initialTest(int argc, char* argv[]) {
 }
 
 
+void initializePopulation(CoevolutionEngineST *pST, int popSize, int childCnt, int genSize, int lowerBound, int upperBound) {
+    pST->setPopulation(popSize,childCnt,genSize, lowerBound, upperBound);
+    std::ostringstream popInitStr;
+    popInitStr << "Population initialized with params:"
+                  << " popSize: " << popSize
+                  << ", childCnt: " << childCnt
+                  << ", genSize: " << genSize
+                  << ", lowerBound: " << lowerBound
+                  << ", upperBound: " << upperBound;
+    write_text_to_log_file(popInitStr.str());
+}
+
 int main(int argc, char* argv[]) {
 
     //initialTest(argc, argv);
@@ -111,7 +125,8 @@ int main(int argc, char* argv[]) {
     std::function<double(Genotype)> optimizedFunc2;
     initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
 
-    cov.setPopulation(100,20,1, -40, 40);
+    initializePopulation(&cov, 100,20,1, -40, 40);
+
     double startF1 = omp_get_wtime( );
     const Genotype* gen1 = cov.solve(optimizedFunc1, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
     double endF1 = omp_get_wtime( );
