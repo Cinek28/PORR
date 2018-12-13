@@ -10,9 +10,39 @@
 # define NUMBER_THREADS 10
 
 void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
-                                     std::function<double(Genotype)> &optimizedFunc2);
+                                     std::function<double(Genotype)> &optimizedFunc2) {
+    optimizedFunc1= [](Genotype genotype)
+    {
+        double sum = 0, prod = 1.0;
+        for(unsigned int i = 0; i < genotype.size();++i)
+        {
+            sum += pow(genotype[i].first,2);
+            prod *= cos(genotype[i].first/(i+1));
+        }
+        return 1./40.0*sum+1-prod;
+    };
+    optimizedFunc2= [](Genotype genotype)
+    {
+        double ex2 = 0, ecos2px = 0;
+        for(unsigned int i = 0; i < genotype.size();++i)
+        {
+            ex2 += pow(genotype[i].first,2);
+            ecos2px += cos(2 * M_PI * genotype[i].first);
+        }
+        return 20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
+    };
+}
 
-void write_text_to_log_file(const std::string &text);
+void write_text_to_log_file( const std::string &text )
+{
+    time_t _tm =time(NULL );
+    struct tm * curtime = localtime ( &_tm );
+    auto datetimeNow = asctime(curtime);
+    std::ofstream log_file(
+            "../results/log_file.txt", std::ios_base::out | std::ios_base::app );
+    log_file << datetimeNow << text << std::endl;
+
+}
 
 double test_parallel(int num_steps) {
     int i;
@@ -106,41 +136,4 @@ int main(int argc, char* argv[]) {
     std::cout << "\nExecution Time: " << endF2-startF2 << " [s]" << std::endl;
 
     return 0;
-}
-
-void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
-                                     std::function<double(Genotype)> &optimizedFunc2) {
-    optimizedFunc1= [](Genotype genotype)
-        {
-            double sum = 0, prod = 1.0;
-            //TODO: Could be parallel, better not, for larger genotypes whole method should be in separate threads
-            for(unsigned int i = 0; i < genotype.size();++i)
-            {
-                sum += pow(genotype[i].first,2);
-                prod *= cos(genotype[i].first/(i+1));
-            }
-            return 1./40.0*sum+1-prod;
-        };
-    optimizedFunc2= [](Genotype genotype)
-    {
-        double ex2 = 0, ecos2px = 0;
-        //TODO: Could be parallel, better not, for larger genotypes whole method should be in separate threads
-        for(unsigned int i = 0; i < genotype.size();++i)
-        {
-            ex2 += pow(genotype[i].first,2);
-            ecos2px += cos(2 * M_PI * genotype[i].first);
-        }
-        return 20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
-    };
-}
-
-void write_text_to_log_file( const std::string &text )
-{
-    time_t _tm =time(NULL );
-    struct tm * curtime = localtime ( &_tm );
-    auto datetimeNow = asctime(curtime);
-    std::ofstream log_file(
-            "../results/log_file.txt", std::ios_base::out | std::ios_base::app );
-    log_file << datetimeNow << text << std::endl;
-
 }
