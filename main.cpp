@@ -104,17 +104,36 @@ void initialTest(int argc, char* argv[]) {
               << " milliseconds" << std::endl;
 }
 
+void performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
+                         int childCnt, int genSize, int lowerBound, int upperBound,
+                         CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName) {
 
-void initializePopulation(CoevolutionEngineST *pST, int popSize, int childCnt, int genSize, int lowerBound, int upperBound) {
-    pST->setPopulation(popSize,childCnt,genSize, lowerBound, upperBound);
+    cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
     std::ostringstream popInitStr;
     popInitStr << "Population initialized with params:"
-                  << " popSize: " << popSize
-                  << ", childCnt: " << childCnt
-                  << ", genSize: " << genSize
-                  << ", lowerBound: " << lowerBound
-                  << ", upperBound: " << upperBound;
+               << " popSize: " << popSize
+               << ", childCnt: " << childCnt
+               << ", genSize: " << genSize
+               << ", lowerBound: " << lowerBound
+               << ", upperBound: " << upperBound
+               << ", function: " << optimizedFuncName
+               << ", criteria: " << cov.enum2cChar[criteria];
     write_text_to_log_file(popInitStr.str());
+    double startF1 = omp_get_wtime( );
+    const Genotype* gen1 = cov.solve(optimizedFunc, criteria);
+    double endF1 = omp_get_wtime( );
+    std::ostringstream popResultStr, popExecTimeStr;
+    std::cout << "Solution: " << std::endl;
+    popResultStr << "Solution: ";
+    for(unsigned int i = 0; i < gen1->size(); ++i)
+    {
+        std::cout << gen1->at(i).first << ", ";
+        popResultStr << gen1->at(i).first << ", ";
+    }
+    write_text_to_log_file(popResultStr.str());
+    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s]" << std::endl;
+    popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s]";
+    write_text_to_log_file(popExecTimeStr.str());
 }
 
 int main(int argc, char* argv[]) {
@@ -125,30 +144,9 @@ int main(int argc, char* argv[]) {
     std::function<double(Genotype)> optimizedFunc2;
     initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
 
-    initializePopulation(&cov, 100,20,1, -40, 40);
-
-    double startF1 = omp_get_wtime( );
-    const Genotype* gen1 = cov.solve(optimizedFunc1, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
-    double endF1 = omp_get_wtime( );
-    std::cout << "Solution: " << std::endl;
-    for(unsigned int i = 0; i < gen1->size(); ++i)
-    {
-        std::cout << gen1->at(i).first << ", ";
-    }
-    std::cout << "\nExecution Time: " << endF1-startF1 << " [s]" << std::endl;
-
-
-    cov.setPopulation(500,80,2, -40, 40);
+    performCalculations(cov, optimizedFunc1, 100, 20, 1, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1");
     cov.setNoOfItersWithoutImprov(500);
-    double startF2 = omp_get_wtime( );
-    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
-    double endF2 = omp_get_wtime( );
-    std::cout << "Solution: " << std::endl;
-    for(unsigned int i = 0; i < gen2->size(); ++i)
-    {
-        std::cout << gen2->at(i).first << ", ";
-    }
-    std::cout << "\nExecution Time: " << endF2-startF2 << " [s]" << std::endl;
+    performCalculations(cov, optimizedFunc2, 500, 80, 2, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2");
 
     return 0;
 }

@@ -19,6 +19,11 @@ public:
         DESIRED_ERROR
     };
 
+    std::string enum2cChar[2] = {
+            "NO_OF_ITERS_WITHOUT_IMPROV",
+            "DESIRED_ERROR",
+    };
+
 private:
 
     unsigned int mNoOfItersWithoutImprov;
