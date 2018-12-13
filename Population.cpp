@@ -28,14 +28,14 @@ void Population::init(const int &lowerBound, const int &upperBound)
     std::uniform_real_distribution<double> uniformDist(0.0,1.0);
 
     for_each(pPopulationData->begin(), pPopulationData->end(), [&](std::unique_ptr<Genotype> &  genotype) {
-        std::cout << "Genotype: { ";
-        for(unsigned int i = 0; i < genotype->size(); ++i)
-        {
-            genotype->at(i).first = mLowerBound + (mUpperBound - mLowerBound) * uniformDist(generator);
-            genotype->at(i).second = uniformDist(generator);
-            std::cout << "x[" << i << "]=" << genotype->at(i).first << ", s[" << i << "]=" << genotype->at(i).second << ", ";
-        }
-        std::cout << "} " << std::endl; }
+                 //std::cout << "Genotype: { ";
+                 for (unsigned int i = 0; i < genotype->size(); ++i) {
+                     genotype->at(i).first = mLowerBound + (mUpperBound - mLowerBound) * uniformDist(generator);
+                     genotype->at(i).second = uniformDist(generator);
+                     //std::cout << "x[" << i << "]=" << genotype->at(i).first << ", s[" << i << "]=" << genotype->at(i).second << ", ";
+                 }
+                 //std::cout << "} " << std::endl;
+             }
     );
 }
 

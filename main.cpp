@@ -2,8 +2,17 @@
 #include <iostream>
 #include <assert.h>
 #include "CoevolutionEngineST.h"
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <ctime>
 
 # define NUMBER_THREADS 10
+
+void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
+                                     std::function<double(Genotype)> &optimizedFunc2);
+
+void write_text_to_log_file(const std::string &text);
 
 double test_parallel(int num_steps) {
     int i;
@@ -67,16 +76,44 @@ void initialTest(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
 
     //initialTest(argc, argv);
-
     CoevolutionEngineST cov;
+    std::function<double(Genotype)> optimizedFunc1;
+    std::function<double(Genotype)> optimizedFunc2;
+    initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
 
     cov.setPopulation(100,20,1, -40, 40);
+    double startF1 = omp_get_wtime( );
+    const Genotype* gen1 = cov.solve(optimizedFunc1, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
+    double endF1 = omp_get_wtime( );
+    std::cout << "Solution: " << std::endl;
+    for(unsigned int i = 0; i < gen1->size(); ++i)
+    {
+        std::cout << gen1->at(i).first << ", ";
+    }
+    std::cout << "\nExecution Time: " << endF1-startF1 << " [s]" << std::endl;
 
-    std::function<double (Genotype)> optimizedFunc1 = [](Genotype genotype)
+
+    cov.setPopulation(500,80,2, -40, 40);
+    cov.setNoOfItersWithoutImprov(500);
+    double startF2 = omp_get_wtime( );
+    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
+    double endF2 = omp_get_wtime( );
+    std::cout << "Solution: " << std::endl;
+    for(unsigned int i = 0; i < gen2->size(); ++i)
+    {
+        std::cout << gen2->at(i).first << ", ";
+    }
+    std::cout << "\nExecution Time: " << endF2-startF2 << " [s]" << std::endl;
+
+    return 0;
+}
+
+void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
+                                     std::function<double(Genotype)> &optimizedFunc2) {
+    optimizedFunc1= [](Genotype genotype)
         {
-            double sum = 0;
-            double prod = 1.0;
-            //TODO: Could be parallel
+            double sum = 0, prod = 1.0;
+            //TODO: Could be parallel, better not, for larger genotypes whole method should be in separate threads
             for(unsigned int i = 0; i < genotype.size();++i)
             {
                 sum += pow(genotype[i].first,2);
@@ -84,35 +121,26 @@ int main(int argc, char* argv[]) {
             }
             return 1./40.0*sum+1-prod;
         };
-
-    std::function<double (Genotype)> optimizedFunc2 = [](Genotype genotype)
+    optimizedFunc2= [](Genotype genotype)
     {
-        double sum = 0;
-        //TODO: Could be parallel
+        double ex2 = 0, ecos2px = 0;
+        //TODO: Could be parallel, better not, for larger genotypes whole method should be in separate threads
         for(unsigned int i = 0; i < genotype.size();++i)
         {
-            sum += pow(genotype[i].first,2);
+            ex2 += pow(genotype[i].first,2);
+            ecos2px += cos(2 * M_PI * genotype[i].first);
         }
-        return sum;
+        return 20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
     };
+}
 
-    const Genotype* gen1 = cov.solve(optimizedFunc1, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
-    std::cout << "Solution: " << std::endl;
-    for(unsigned int i = 0; i < gen1->size(); ++i)
-    {
-        std::cout << gen1->at(i).first << " ";
-    }
+void write_text_to_log_file( const std::string &text )
+{
+    time_t _tm =time(NULL );
+    struct tm * curtime = localtime ( &_tm );
+    auto datetimeNow = asctime(curtime);
+    std::ofstream log_file(
+            "../results/log_file.txt", std::ios_base::out | std::ios_base::app );
+    log_file << datetimeNow << text << std::endl;
 
-    cov.setPopulation(500,80,2, -40, 40);
-    cov.setNoOfItersWithoutImprov(500);
-
-    const Genotype* gen2 = cov.solve(optimizedFunc2, CoevolutionEngineST::engineStopCriteria::NO_OF_ITERS_WITHOUT_IMPROV);
-
-    std::cout << "Solution: " << std::endl;
-    for(unsigned int i = 0; i < gen2->size(); ++i)
-    {
-        std::cout << gen2->at(i).first << ", ";
-    }
-
-    return 0;
 }
