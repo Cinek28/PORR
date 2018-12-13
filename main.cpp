@@ -1,7 +1,9 @@
 #include <chrono>
 #include <iostream>
+#include <assert.h>
 #include "CoevolutionEngineST.h"
 
+# define NUMBER_THREADS 10
 
 double test_parallel(int num_steps) {
     int i;
@@ -11,6 +13,7 @@ double test_parallel(int num_steps) {
 
 #pragma omp parallel for reduction(+:sum) private(x)
     for (i = 1; i <= num_steps; i++) {
+        assert( omp_get_num_threads() == NUMBER_THREADS );
         x = (i - 0.5) * step;
         sum = sum + 4.0 / (1.0 + x*x);
     }
@@ -43,6 +46,10 @@ void initialTest(int argc, char* argv[]) {
     if (argc > 1)
         n = atoi(argv[1]);
 
+    int n_thread = NUMBER_THREADS;   // number of threads in parallel regions
+    omp_set_dynamic(0);              // off dynamic thread adjust
+    omp_set_num_threads(n_thread);   // set the number of threads
+
     d = test_parallel(n);
     auto end = std::chrono::_V2::system_clock::now();
     std::cout << "For " << n << " steps, pi = " << d << ", "
@@ -58,6 +65,8 @@ void initialTest(int argc, char* argv[]) {
 
 
 int main(int argc, char* argv[]) {
+
+    //initialTest(argc, argv);
 
     CoevolutionEngineST cov;
 

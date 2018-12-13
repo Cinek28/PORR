@@ -32,7 +32,7 @@ void Population::init(const int &lowerBound, const int &upperBound)
         for(unsigned int i = 0; i < genotype->size(); ++i)
         {
             genotype->at(i).first = mLowerBound + (mUpperBound - mLowerBound) * uniformDist(generator);
-            genotype->at(i).second = drand48();
+            genotype->at(i).second = uniformDist(generator);
             std::cout << "x[" << i << "]=" << genotype->at(i).first << ", s[" << i << "]=" << genotype->at(i).second << ", ";
         }
         std::cout << "} " << std::endl; }
