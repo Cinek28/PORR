@@ -7,14 +7,13 @@
 #include <sstream>
 #include <ctime>
 #include <cstring>
-
-# define NUMBER_THREADS 10
+#include <omp.h>
 
 void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
                                      std::function<double(Genotype)> &optimizedFunc2) {
     optimizedFunc1= [](Genotype genotype)
     {
-        double sum = 0, prod = 1.0;
+        double sum = 0, prod = 1.0;//TODO simd
         for(unsigned int i = 0; i < genotype.size();++i)
         {
             sum += pow(genotype[i].first,2);
@@ -24,13 +23,13 @@ void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedF
     };
     optimizedFunc2= [](Genotype genotype)
     {
-        double ex2 = 0, ecos2px = 0;
+        double ex2 = 0, ecos2px = 0;//TODO simd
         for(unsigned int i = 0; i < genotype.size();++i)
         {
             ex2 += pow(genotype[i].first,2);
             ecos2px += cos(2 * M_PI * genotype[i].first);
         }
-        return 20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
+        return -20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
     };
 }
 
@@ -54,7 +53,7 @@ double test_parallel(int num_steps) {
 
 #pragma omp parallel for reduction(+:sum) private(x)
     for (i = 1; i <= num_steps; i++) {
-        assert( omp_get_num_threads() == NUMBER_THREADS );
+        assert( omp_get_num_threads() == 10 );
         x = (i - 0.5) * step;
         sum = sum + 4.0 / (1.0 + x*x);
     }
@@ -87,7 +86,7 @@ void initialTest(int argc, char* argv[]) {
     if (argc > 1)
         n = atoi(argv[1]);
 
-    int n_thread = NUMBER_THREADS;   // number of threads in parallel regions
+    int n_thread = 10;   // number of threads in parallel regions
     omp_set_dynamic(0);              // off dynamic thread adjust
     omp_set_num_threads(n_thread);   // set the number of threads
 
@@ -104,12 +103,18 @@ void initialTest(int argc, char* argv[]) {
               << " milliseconds" << std::endl;
 }
 
-void performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
+bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
                          int childCnt, int genSize, int lowerBound, int upperBound,
-                         CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName) {
+                         CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName, double mutationVariance) {
 
-    cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
     std::ostringstream popInitStr;
+    bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
+    if(!populationSet){
+        popInitStr << "Population initialization error!";
+        write_text_to_log_file(popInitStr.str());
+        return false;
+    }
+
     popInitStr << "Population initialized with params:"
                << " popSize: " << popSize
                << ", childCnt: " << childCnt
@@ -120,7 +125,7 @@ void performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
                << ", criteria: " << cov.enum2cChar[criteria];
     write_text_to_log_file(popInitStr.str());
     double startF1 = omp_get_wtime( );
-    const Genotype* gen1 = cov.solve(optimizedFunc, criteria);
+    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance);
     double endF1 = omp_get_wtime( );
     std::ostringstream popResultStr, popExecTimeStr;
     std::cout << "Solution: " << std::endl;
@@ -134,6 +139,7 @@ void performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
     std::cout << "\nExecution Time: " << endF1 - startF1 << " [s]" << std::endl;
     popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s]";
     write_text_to_log_file(popExecTimeStr.str());
+    return true;
 }
 
 int main(int argc, char* argv[]) {
@@ -144,9 +150,21 @@ int main(int argc, char* argv[]) {
     std::function<double(Genotype)> optimizedFunc2;
     initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
 
-    performCalculations(cov, optimizedFunc1, 100, 20, 1, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1");
-    cov.setNoOfItersWithoutImprov(500);
-    performCalculations(cov, optimizedFunc2, 500, 80, 2, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2");
+//    std::vector<std::pair<double,double>> vect = std::vector<std::pair<double,double>>();
+//    for(int i=0;i<10;i++)
+//        vect.push_back({30,0});
+//
+//    double F2Result = optimizedFunc2(vect);
+//    double F1Result = optimizedFunc1(vect);
 
+    bool calculationsPerformed;
+    cov.setDesiredError(0.1);
+    calculationsPerformed = performCalculations(cov, optimizedFunc1, 30, 12, 50, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3);
+    if(!calculationsPerformed)
+        return -1;
+    cov.setDesiredError(0.1);
+    calculationsPerformed = performCalculations(cov, optimizedFunc2, 30, 12, 50, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.9);
+    if(!calculationsPerformed)
+        return -1;
     return 0;
 }

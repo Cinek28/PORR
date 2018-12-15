@@ -48,7 +48,7 @@ public:
 
     bool init(const double & lowerBound, const double & upperBound);
 
-    const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria);
+    const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria, double mutationVariance);
 
     double getDesiredError() const {return mDesiredError;};
     void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};

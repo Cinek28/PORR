@@ -57,11 +57,9 @@ const Genotype * Population::getBestFit(std::function<double (Genotype &)> func)
     return bestFittingGenotype;
 }
 
-void Population::cross(const double &crossingCoeff, std::default_random_engine &generator)
-{
+void Population::cross(std::default_random_engine &generator)
+{//http://www.scholarpedia.org/article/Evolution_strategies
     unsigned int noOfCrossedGenotypes = mChildrenCount;
-    if(crossingCoeff < 1.0 && crossingCoeff >= 0.0)
-        noOfCrossedGenotypes = crossingCoeff*mChildrenCount;
 
     //Randomly shuffle elements and get just first <crossingCoeff>*children_size number of elements:
     auto iter = std::next(pPopulationData->begin(), mPopulationSize);
@@ -69,14 +67,16 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
 
     std::uniform_int_distribution<int> uniformDist(0,1);
 
-    unsigned int size = pPopulationData->at(0)->size();
-    //TODO: OMP Parallel
+    unsigned int genotypeSize = pPopulationData->at(0)->size();
+    //TODO: OMP Parallel for + simd
 //    #pragma omp for simd collapse(2)
-    for(unsigned int i = 0; i < noOfCrossedGenotypes; ++i)
-    {
-        for(unsigned int j = 0; j < size; ++j)
+    for(unsigned int i = 0; i < noOfCrossedGenotypes; i=i+2)
+    {//TODO simd
+        for(unsigned int j = 0; j < genotypeSize; ++j)
         {
-            pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + uniformDist(generator))->at(j);
+            int parentChoice = uniformDist(generator);
+            pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + parentChoice)->at(j);
+            pPopulationData->at(i + 1 + mPopulationSize)->at(j) = pPopulationData->at(i  + 1 - parentChoice)->at(j);
         }
     }
 }

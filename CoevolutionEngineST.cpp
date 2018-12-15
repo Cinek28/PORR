@@ -11,7 +11,7 @@
 bool CoevolutionEngineST::setPopulation(const size_t &popSize, const size_t childCnt, const size_t &genSize,
                                         const double lowerBound, const double upperBound)
 {
-    if(popSize < childCnt || lowerBound > upperBound)
+    if(popSize < childCnt || lowerBound > upperBound || (childCnt%2 != 0))
         return false;
 
     pCalcPopulation.reset(new Population(popSize, childCnt,genSize));
@@ -31,7 +31,7 @@ bool CoevolutionEngineST::init(const double &lowerBound, const double &upperBoun
     return true;
 }
 
-const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria)
+const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria, double mutationVariance)
 {
     if(pCalcPopulation == nullptr)
     {
@@ -46,8 +46,8 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
     while(!CheckTerminationCriteria(criteria, iters))
     {
 //        std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
-        pCalcPopulation->cross(CROSSING_OVER_PERCENTAGE, mGenerator);
-        pCalcPopulation->mutate(MUTATION_VARIANCE, mGenerator);
+        pCalcPopulation->cross(mGenerator);
+        pCalcPopulation->mutate(mutationVariance, mGenerator);
         pCalcPopulation->getBestFit(func);
 //        printPopulation();
     }
