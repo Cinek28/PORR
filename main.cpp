@@ -9,25 +9,46 @@
 #include <cstring>
 #include <omp.h>
 
+#define OMP_ON false
+
 void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
                                      std::function<double(Genotype)> &optimizedFunc2) {
     optimizedFunc1= [](Genotype genotype)
     {
-        double sum = 0, prod = 1.0;//TODO simd
-        for(unsigned int i = 0; i < genotype.size();++i)
-        {
-            sum += pow(genotype[i].first,2);
-            prod *= cos(genotype[i].first/(i+1));
+        double sum = 0, prod = 1.0;//TODO DONE simd
+        if(OMP_ON){
+            #pragma omp simd
+            for(unsigned int i = 0; i < genotype.size();++i)
+            {
+                sum += pow(genotype[i].first,2);
+                prod *= cos(genotype[i].first/(i+1));
+            }
         }
+        else{
+            for(unsigned int i = 0; i < genotype.size();++i)
+            {
+                sum += pow(genotype[i].first,2);
+                prod *= cos(genotype[i].first/(i+1));
+            }
+        }
+
         return 1./40.0*sum+1-prod;
     };
     optimizedFunc2= [](Genotype genotype)
     {
-        double ex2 = 0, ecos2px = 0;//TODO simd
-        for(unsigned int i = 0; i < genotype.size();++i)
-        {
-            ex2 += pow(genotype[i].first,2);
-            ecos2px += cos(2 * M_PI * genotype[i].first);
+        double ex2 = 0, ecos2px = 0;//TODO DONE simd
+        if(OMP_ON){
+            #pragma omp simd
+            for (unsigned int i = 0; i < genotype.size(); ++i) {
+                ex2 += pow(genotype[i].first, 2);
+                ecos2px += cos(2 * M_PI * genotype[i].first);
+            }
+        }
+        else{
+            for (unsigned int i = 0; i < genotype.size(); ++i) {
+                ex2 += pow(genotype[i].first, 2);
+                ecos2px += cos(2 * M_PI * genotype[i].first);
+            }
         }
         return -20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
     };
@@ -124,9 +145,11 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
                << ", function: " << optimizedFuncName
                << ", criteria: " << cov.enum2cChar[criteria];
     write_text_to_log_file(popInitStr.str());
+    int iterationsCount;
     double startF1 = omp_get_wtime( );
-    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance);
+    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, OMP_ON);
     double endF1 = omp_get_wtime( );
+    double singleIterationExecutionTime = 1000 * (double)(endF1-startF1)/(double)iterationsCount;
     std::ostringstream popResultStr, popExecTimeStr;
     std::cout << "Solution: " << std::endl;
     popResultStr << "Solution: ";
@@ -136,8 +159,8 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
         popResultStr << gen1->at(i).first << ", ";
     }
     write_text_to_log_file(popResultStr.str());
-    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s]" << std::endl;
-    popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s]";
+    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl;
+    popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
     write_text_to_log_file(popExecTimeStr.str());
     return true;
 }
@@ -145,6 +168,8 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
 int main(int argc, char* argv[]) {
 
     //initialTest(argc, argv);
+//    omp_set_dynamic(0);
+//    omp_set_num_threads(8);
     CoevolutionEngineST cov;
     std::function<double(Genotype)> optimizedFunc1;
     std::function<double(Genotype)> optimizedFunc2;
@@ -159,11 +184,11 @@ int main(int argc, char* argv[]) {
 
     bool calculationsPerformed;
     cov.setDesiredError(0.1);
-    calculationsPerformed = performCalculations(cov, optimizedFunc1, 30, 12, 50, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3);
+    calculationsPerformed = performCalculations(cov, optimizedFunc1, 200, 50, 50, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3);
     if(!calculationsPerformed)
         return -1;
-    cov.setDesiredError(0.1);
-    calculationsPerformed = performCalculations(cov, optimizedFunc2, 30, 12, 50, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.9);
+    cov.setDesiredError(1);
+    calculationsPerformed = performCalculations(cov, optimizedFunc2, 200, 50, 50, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.7);
     if(!calculationsPerformed)
         return -1;
     return 0;
