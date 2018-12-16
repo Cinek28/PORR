@@ -4,10 +4,7 @@
 #include "CoevolutionEngineST.h"
 #include <fstream>
 #include <iomanip>
-#include <sstream>
-#include <ctime>
 #include <cstring>
-#include <omp.h>
 
 void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
                                      std::function<double(Genotype)> &optimizedFunc2) {
@@ -40,9 +37,16 @@ void write_text_to_log_file( const std::string &text )
     auto datetimeNow = asctime(curtime);
     datetimeNow[strlen(datetimeNow) - 1] = 0;
     std::ofstream log_file(
-            "../results/log_file.log", std::ios_base::out | std::ios_base::app );
-    log_file << datetimeNow << " | " << text << std::endl;
-
+            "../log_file.log", std::ios_base::out | std::ios_base::app );
+    if(log_file.is_open())
+    {
+        log_file << datetimeNow << " | " << text << std::endl;
+        log_file.close();
+    }
+    else
+    {
+        std::cout << "Log file not open! Cannot write logs to file." << std::endl;
+    }
 }
 
 double test_parallel(int num_steps) {
@@ -159,11 +163,13 @@ int main(int argc, char* argv[]) {
 
     bool calculationsPerformed;
     cov.setDesiredError(0.1);
-    calculationsPerformed = performCalculations(cov, optimizedFunc1, 30, 12, 50, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3);
+    cov.setNoOfItersWithoutImprov(300);
+    calculationsPerformed = performCalculations(cov, optimizedFunc1, 30, 12, 3, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3);
     if(!calculationsPerformed)
         return -1;
     cov.setDesiredError(0.1);
-    calculationsPerformed = performCalculations(cov, optimizedFunc2, 30, 12, 50, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.9);
+    cov.setNoOfItersWithoutImprov(300);
+    calculationsPerformed = performCalculations(cov, optimizedFunc2, 30, 12, 3, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3);
     if(!calculationsPerformed)
         return -1;
     return 0;

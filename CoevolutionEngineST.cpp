@@ -46,7 +46,7 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
     while(!CheckTerminationCriteria(criteria, iters))
     {
 //        std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
-        pCalcPopulation->cross(mGenerator);
+        pCalcPopulation->cross(0.2, mGenerator);
         pCalcPopulation->mutate(mutationVariance, mGenerator);
         pCalcPopulation->getBestFit(func);
 //        printPopulation();
