@@ -10,6 +10,8 @@
 #include <omp.h>
 #include "Population.h"
 
+#define populationCnt 5
+
 class CoevolutionEngineST {
 public:
 
@@ -26,17 +28,18 @@ public:
 
 private:
 
-    unsigned int mNoOfItersWithoutImprov;
-    double mDesiredError, mBestFitError;
+    unsigned int mNoOfItersWithoutImprov[populationCnt] = {0};
+    double mDesiredError;
+    double mBestFitError[populationCnt];
     std::default_random_engine mGenerator;
-    std::unique_ptr<Population> pCalcPopulation = nullptr;
+    std::unique_ptr<Population> pCalcPopulation[populationCnt] = {nullptr};
+    
 
-    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn);
+    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn, int populationIter);
 
 public:
 
     CoevolutionEngineST(const double & desiredError = 0.1,const unsigned int & noOfItersWithoutImprov = 20):
-            mNoOfItersWithoutImprov(noOfItersWithoutImprov),
             mDesiredError(desiredError)
     {
         std::random_device r;
@@ -53,10 +56,7 @@ public:
     double getDesiredError() const {return mDesiredError;};
     void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};
 
-    double getBestFitError(bool ompOn);
-
-    unsigned int getNoOfItersWithoutImprov() const {return mNoOfItersWithoutImprov;};
-    void setNoOfItersWithoutImprov(const unsigned int noOfIters) {mNoOfItersWithoutImprov = noOfIters;};
+    double getBestFitError(bool ompOn, int populationIter);
 
     void printPopulation();
 };
