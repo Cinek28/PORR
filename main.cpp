@@ -16,11 +16,6 @@ int main(int argc, char* argv[]) {
         args = argv[1];
     }
 
-    CoevolutionEngineST cov;
-    std::function<double(Genotype)> optimizedFunc1;
-    std::function<double(Genotype)> optimizedFunc2;
-    initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
-
     if(atoi(args.c_str()))
     {
         QApplication a(argc, argv);

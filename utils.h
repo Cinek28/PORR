@@ -10,40 +10,40 @@ void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedF
     optimizedFunc1= [](Genotype genotype)
     {
         double sum = 0, prod = 1.0;//TODO DONE simd
-        if(OMP_ON){
-//            #pragma omp simd
+//        if(OMP_ON){
+////            #pragma omp simd
+//            for(unsigned int i = 0; i < genotype.size();++i)
+//            {
+//                sum += pow(genotype[i].first,2);
+//                prod *= cos(genotype[i].first/(i+1));
+//            }
+//        }
+//        else{
             for(unsigned int i = 0; i < genotype.size();++i)
             {
                 sum += pow(genotype[i].first,2);
                 prod *= cos(genotype[i].first/(i+1));
             }
-        }
-        else{
-            for(unsigned int i = 0; i < genotype.size();++i)
-            {
-                sum += pow(genotype[i].first,2);
-                prod *= cos(genotype[i].first/(i+1));
-            }
-        }
+//        }
 
         return 1./40.0*sum+1-prod;
     };
     optimizedFunc2= [](Genotype genotype)
     {
         double ex2 = 0, ecos2px = 0;//TODO DONE simd
-        if(OMP_ON){
-//            #pragma omp simd
+//        if(OMP_ON){
+////            #pragma omp simd
+//            for (unsigned int i = 0; i < genotype.size(); ++i) {
+//                ex2 += pow(genotype[i].first, 2);
+//                ecos2px += cos(2 * M_PI * genotype[i].first);
+//            }
+//        }
+//        else{
             for (unsigned int i = 0; i < genotype.size(); ++i) {
                 ex2 += pow(genotype[i].first, 2);
                 ecos2px += cos(2 * M_PI * genotype[i].first);
             }
-        }
-        else{
-            for (unsigned int i = 0; i < genotype.size(); ++i) {
-                ex2 += pow(genotype[i].first, 2);
-                ecos2px += cos(2 * M_PI * genotype[i].first);
-            }
-        }
+//        }
         return -20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
     };
 }
@@ -111,6 +111,11 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
 
 bool test()
 {
+    CoevolutionEngineST cov;
+    std::function<double(Genotype)> optimizedFunc1;
+    std::function<double(Genotype)> optimizedFunc2;
+    initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
+
     bool isOMPOn = false;
     bool calculationsPerformed;
 //        for(int i = 1; i <= 8; ++i)
