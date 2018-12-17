@@ -23,11 +23,11 @@ public:
 
     void init(const int & lowerBound, const int & upperBound);
 
-    void cross(const double &noOfCrossedChilder, std::default_random_engine &generator);
+    void cross(const double &crossingCoeff, std::default_random_engine &generator, bool ompOn);
 
-    void mutate(const double &normalDistVariance, std::default_random_engine &generator);
+    void mutate(const double &normalDistVariance, std::default_random_engine &generator, bool ompOn);
 
-    const Genotype * getBestFit(std::function<double (Genotype &)> func);
+    const Genotype * getBestFit(std::function<double (Genotype &)> func, bool ompOn);
 
     const Genotype * at(unsigned int index);
 

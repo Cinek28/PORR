@@ -4,6 +4,7 @@
 
 #include "Population.h"
 #include <algorithm>
+#include <parallel/algorithm>
 
 
 Population::Population(const size_t &popSize, const size_t &childCnt, const size_t &genSize):
@@ -28,13 +29,10 @@ void Population::init(const int &lowerBound, const int &upperBound)
     std::uniform_real_distribution<double> uniformDist(0.0,1.0);
 
     for_each(pPopulationData->begin(), pPopulationData->end(), [&](std::unique_ptr<Genotype> &  genotype) {
-                 //std::cout << "Genotype: { ";
                  for (unsigned int i = 0; i < genotype->size(); ++i) {
                      genotype->at(i).first = mLowerBound + (mUpperBound - mLowerBound) * uniformDist(generator);
                      genotype->at(i).second = uniformDist(generator);
-                     //std::cout << "x[" << i << "]=" << genotype->at(i).first << ", s[" << i << "]=" << genotype->at(i).second << ", ";
                  }
-                 //std::cout << "} " << std::endl;
              }
     );
 }
@@ -44,21 +42,19 @@ const Genotype* Population::at(unsigned int index)
     return pPopulationData->at(index).get();
 }
 
-const Genotype * Population::getBestFit(std::function<double (Genotype &)> func)
+const Genotype * Population::getBestFit(std::function<double (Genotype &)> func, bool ompOn)
 {
     //Sequential version:
     std::sort(pPopulationData->begin(), pPopulationData->end(),
               [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
                     {return func(*a.get()) < func(*b.get());});
 
-    //TODO: Parallel sorting algorithm (best merge/heap sort):
-
     const Genotype * bestFittingGenotype = pPopulationData->at(0).get();
     return bestFittingGenotype;
 }
 
-void Population::cross(const double &crossingCoeff, std::default_random_engine &generator)
-{
+void Population::cross(const double &crossingCoeff, std::default_random_engine &generator, bool ompOn)
+{//http://www.scholarpedia.org/article/Evolution_strategies
     unsigned int noOfCrossedGenotypes = mChildrenCount;
     if(crossingCoeff < 1.0 && crossingCoeff >= 0.0)
         noOfCrossedGenotypes = crossingCoeff*mChildrenCount;
@@ -66,38 +62,61 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
     //Randomly shuffle elements and get just first <crossingCoeff>*children_size number of elements:
     auto iter = std::next(pPopulationData->begin(), mPopulationSize);
     std::random_shuffle ( pPopulationData->begin(), iter );
-
     std::uniform_int_distribution<int> uniformDist(0,1);
 
     unsigned int size = pPopulationData->at(0)->size();
     //TODO: OMP Parallel
-    #pragma omp for simd collapse(2) nowait
-    for(unsigned int i = 0; i < noOfCrossedGenotypes; ++i)
-    {
-        for(unsigned int j = 0; j < size; ++j)
-        {
-            pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + uniformDist(generator))->at(j);
+    if(ompOn) {
+        #pragma omp parallel for simd collapse(2)
+        for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
+            for (unsigned int j = 0; j < size; ++j) {
+                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
+            }
+        }
+    }
+    else {
+        for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
+            for (unsigned int j = 0; j < size; ++j) {
+                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
+            }
         }
     }
 }
 
-void Population::mutate(const double &normalDistVariance, std::default_random_engine &generator)
+void Population::mutate(const double &normalDistVariance, std::default_random_engine &generator, bool ompOn)
 {
     unsigned int size = pPopulationData->at(0)->size(); // all vectors are of the same size
-    //TODO: OMP Parallel
+    //TODO: DONE OMP Parallel
     std::normal_distribution<double> distribution(0.0,normalDistVariance);
-    #pragma omp for simd collapse(2) nowait
-    for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
-    {
-        for(unsigned int j = 0; j < size; ++j)
+    if(ompOn){
+        #pragma omp parallel for simd collapse(2)
+        for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
         {
-            pPopulationData->at(i)->at(j).second *= exp(distribution(generator));
-            std::normal_distribution<double> distr(0.0,pPopulationData->at(i)->at(j).second);
-            pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second*distr(generator);
-            if(pPopulationData->at(i)->at(j).first > mUpperBound)
-                pPopulationData->at(i)->at(j).first = mUpperBound;
-            else if (pPopulationData->at(i)->at(j).first < mLowerBound)
-                pPopulationData->at(i)->at(j).first = mLowerBound;
+            for(unsigned int j = 0; j < size; ++j)
+            {
+                pPopulationData->at(i)->at(j).second *= exp(distribution(generator));
+                std::normal_distribution<double> distr(0.0,pPopulationData->at(i)->at(j).second);
+                pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second*distr(generator);
+                if(pPopulationData->at(i)->at(j).first > mUpperBound)
+                    pPopulationData->at(i)->at(j).first = mUpperBound;
+                else if (pPopulationData->at(i)->at(j).first < mLowerBound)
+                    pPopulationData->at(i)->at(j).first = mLowerBound;
+            }
+        }
+    }
+    else{
+        for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
+        {
+            for(unsigned int j = 0; j < size; ++j)
+            {
+                pPopulationData->at(i)->at(j).second *= exp(distribution(generator));
+                std::normal_distribution<double> distr(0.0,pPopulationData->at(i)->at(j).second);
+                pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second*distr(generator);
+                if(pPopulationData->at(i)->at(j).first > mUpperBound)
+                    pPopulationData->at(i)->at(j).first = mUpperBound;
+                else if (pPopulationData->at(i)->at(j).first < mLowerBound)
+                    pPopulationData->at(i)->at(j).first = mLowerBound;
+            }
         }
     }
 }

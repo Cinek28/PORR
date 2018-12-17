@@ -4,10 +4,6 @@
 
 #include "CoevolutionEngineST.h"
 
-#define MUTATION_VARIANCE 0.1
-#define CROSSING_OVER_PERCENTAGE 0.25
-
-
 bool CoevolutionEngineST::setPopulation(const size_t &popSize, const size_t childCnt, const size_t &genSize,
                                         const double lowerBound, const double upperBound)
 {
@@ -31,36 +27,32 @@ bool CoevolutionEngineST::init(const double &lowerBound, const double &upperBoun
     return true;
 }
 
-const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria, double mutationVariance)
+const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, bool ompOn)
 {
     if(pCalcPopulation == nullptr)
     {
         std::cout << "Population not set" << std::endl;
         return nullptr;
     }
-    unsigned int iters = 0;
-    mBestFitError = getBestFitError();
+    unsigned int iters = 0, iterationsCounter = 0;
+    mBestFitError = getBestFitError(ompOn);
 
-//    std::cout << "Starting optimization. Iter 0." << std::endl;
 
-    while(!CheckTerminationCriteria(criteria, iters))
+    while(!CheckTerminationCriteria(criteria, iters, ompOn))
     {
-//        std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
-        pCalcPopulation->cross(0.2, mGenerator);
-        pCalcPopulation->mutate(mutationVariance, mGenerator);
-        pCalcPopulation->getBestFit(func);
-//        printPopulation();
+        pCalcPopulation->cross(0.4, mGenerator, ompOn);
+        pCalcPopulation->mutate(mutationVariance, mGenerator, ompOn);
+        pCalcPopulation->getBestFit(func, ompOn);
+        iterationsCounter++;
     }
-
-//    std::cout << "Iters without improvement: " << iters << " Best fit error: " << mBestFitError <<  std::endl;
-//    std::cout << "All iters: " << allIters << std::endl;
+    iterationsCount = iterationsCounter;
     return pCalcPopulation->at(0);
 }
 
 
-bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters)
+bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn)
 {
-    double thisIterBestError = getBestFitError();
+    double thisIterBestError = getBestFitError(ompOn);
 
     if(criteria == DESIRED_ERROR)
     {
@@ -78,15 +70,17 @@ bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, 
         }
     }
     if(mBestFitError <= thisIterBestError)
+    {
         ++iters;
-    else
-        iters = 0;
+        return false;
+    }
 
+    iters = 0;
     mBestFitError = thisIterBestError;
     return false;
 }
 
-double CoevolutionEngineST::getBestFitError()
+double CoevolutionEngineST::getBestFitError(bool ompOn)
 {   //Calculating error ONLY (!!) where function minimum is point (0,0,0,...)
     //Fit error calculated as MEAN SQUARE ERROR of all values:
     double bestFitError = 0;

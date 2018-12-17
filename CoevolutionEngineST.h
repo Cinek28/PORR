@@ -31,7 +31,7 @@ private:
     std::default_random_engine mGenerator;
     std::unique_ptr<Population> pCalcPopulation = nullptr;
 
-    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters);
+    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn);
 
 public:
 
@@ -48,12 +48,12 @@ public:
 
     bool init(const double & lowerBound, const double & upperBound);
 
-    const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria, double mutationVariance);
+    const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, bool ompOn);
 
     double getDesiredError() const {return mDesiredError;};
     void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};
 
-    double getBestFitError();
+    double getBestFitError(bool ompOn);
 
     unsigned int getNoOfItersWithoutImprov() const {return mNoOfItersWithoutImprov;};
     void setNoOfItersWithoutImprov(const unsigned int noOfIters) {mNoOfItersWithoutImprov = noOfIters;};
