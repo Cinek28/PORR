@@ -21,7 +21,7 @@ Prepare an algorithm in 3 versions:
 * CMake 2.8 or newer 
 * OpenMP 4.0 or newer
 * OpenCL (version not specified yet)
-* Qt5 for GUI and plots preparation (to be determined)
+* matplotlib-cpp for GUI and plots preparation
 
 #### Building:
 
