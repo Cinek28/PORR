@@ -1,195 +1,68 @@
 #include <chrono>
 #include <iostream>
-#include <assert.h>
-#include "CoevolutionEngineST.h"
 #include <fstream>
 #include <iomanip>
-#include <sstream>
-#include <ctime>
 #include <cstring>
-#include <omp.h>
+#include "CoevolutionEngineST.h"
+#include "utils.h"
+#include "matplotlibcpp.h"
 
-#define OMP_ON false
+namespace plt = matplotlibcpp;
 
-void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
-                                     std::function<double(Genotype)> &optimizedFunc2) {
-    optimizedFunc1= [](Genotype genotype)
-    {
-        double sum = 0, prod = 1.0;//TODO DONE simd
-        if(OMP_ON){
-            #pragma omp simd
-            for(unsigned int i = 0; i < genotype.size();++i)
-            {
-                sum += pow(genotype[i].first,2);
-                prod *= cos(genotype[i].first/(i+1));
-            }
-        }
-        else{
-            for(unsigned int i = 0; i < genotype.size();++i)
-            {
-                sum += pow(genotype[i].first,2);
-                prod *= cos(genotype[i].first/(i+1));
-            }
-        }
-
-        return 1./40.0*sum+1-prod;
-    };
-    optimizedFunc2= [](Genotype genotype)
-    {
-        double ex2 = 0, ecos2px = 0;//TODO DONE simd
-        if(OMP_ON){
-            #pragma omp simd
-            for (unsigned int i = 0; i < genotype.size(); ++i) {
-                ex2 += pow(genotype[i].first, 2);
-                ecos2px += cos(2 * M_PI * genotype[i].first);
-            }
-        }
-        else{
-            for (unsigned int i = 0; i < genotype.size(); ++i) {
-                ex2 += pow(genotype[i].first, 2);
-                ecos2px += cos(2 * M_PI * genotype[i].first);
-            }
-        }
-        return -20 * exp(-0.2 * sqrt(ex2 / genotype.size())) - exp(ecos2px / genotype.size()) + 20 + M_E;
-    };
-}
-
-void write_text_to_log_file( const std::string &text )
-{
-    time_t _tm =time(NULL );
-    struct tm * curtime = localtime ( &_tm );
-    auto datetimeNow = asctime(curtime);
-    datetimeNow[strlen(datetimeNow) - 1] = 0;
-    std::ofstream log_file(
-            "../results/log_file.log", std::ios_base::out | std::ios_base::app );
-    log_file << datetimeNow << " | " << text << std::endl;
-
-}
-
-double test_parallel(int num_steps) {
-    int i;
-    double x, pi, sum = 0.0, step;
-
-    step = 1.0 / (double) num_steps;
-
-#pragma omp parallel for reduction(+:sum) private(x)
-    for (i = 1; i <= num_steps; i++) {
-        assert( omp_get_num_threads() == 10 );
-        x = (i - 0.5) * step;
-        sum = sum + 4.0 / (1.0 + x*x);
-    }
-
-    pi = step * sum;
-    return pi;
-}
-
-double test_sequential(int num_steps) {
-    int i;
-    double x, pi, sum = 0.0, step;
-
-    step = 1.0 / (double) num_steps;
-
-    for (i = 1; i <= num_steps; i++) {
-        x = (i - 0.5) * step;
-        sum = sum + 4.0 / (1.0 + x*x);
-    }
-
-    pi = step * sum;
-    return pi;
-}
-
-void initialTest(int argc, char* argv[]) {
-    double   d;
-    int n = 1000000;
-
-    auto begin = std::chrono::_V2::system_clock::now();
-
-    if (argc > 1)
-        n = atoi(argv[1]);
-
-    int n_thread = 10;   // number of threads in parallel regions
-    omp_set_dynamic(0);              // off dynamic thread adjust
-    omp_set_num_threads(n_thread);   // set the number of threads
-
-    d = test_parallel(n);
-    auto end = std::chrono::_V2::system_clock::now();
-    std::cout << "For " << n << " steps, pi = " << d << ", "
-              << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
-              << " milliseconds" << std::endl;
-
-    d = test_sequential(n);
-    end = std::chrono::_V2::system_clock::now();
-    std::cout << "For " << n << " steps, pi = " << d << ", "
-              << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
-              << " milliseconds" << std::endl;
-}
-
-bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
-                         int childCnt, int genSize, int lowerBound, int upperBound,
-                         CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName, double mutationVariance) {
-
-    std::ostringstream popInitStr;
-    bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
-    if(!populationSet){
-        popInitStr << "Population initialization error!";
-        write_text_to_log_file(popInitStr.str());
-        return false;
-    }
-
-    popInitStr << "Population initialized with params:"
-               << " popSize: " << popSize
-               << ", childCnt: " << childCnt
-               << ", genSize: " << genSize
-               << ", lowerBound: " << lowerBound
-               << ", upperBound: " << upperBound
-               << ", function: " << optimizedFuncName
-               << ", criteria: " << cov.enum2cChar[criteria];
-    write_text_to_log_file(popInitStr.str());
-    int iterationsCount;
-    double startF1 = omp_get_wtime( );
-    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, OMP_ON);
-    double endF1 = omp_get_wtime( );
-    double singleIterationExecutionTime = 1000 * (double)(endF1-startF1)/(double)iterationsCount;
-    std::ostringstream popResultStr, popExecTimeStr;
-    std::cout << "Solution: " << std::endl;
-    popResultStr << "Solution: ";
-    for(unsigned int i = 0; i < gen1->size(); ++i)
-    {
-        std::cout << gen1->at(i).first << ", ";
-        popResultStr << gen1->at(i).first << ", ";
-    }
-    write_text_to_log_file(popResultStr.str());
-    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl;
-    popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
-    write_text_to_log_file(popExecTimeStr.str());
-    return true;
-}
 
 int main(int argc, char* argv[]) {
 
-    //initialTest(argc, argv);
-//    omp_set_dynamic(0);
-//    omp_set_num_threads(8);
-    CoevolutionEngineST cov;
-    std::function<double(Genotype)> optimizedFunc1;
-    std::function<double(Genotype)> optimizedFunc2;
-    initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
+    std::string args;
+    if(argc > 1)
+    {
+        args = argv[1];
+    }
 
-//    std::vector<std::pair<double,double>> vect = std::vector<std::pair<double,double>>();
-//    for(int i=0;i<10;i++)
-//        vect.push_back({30,0});
-//
-//    double F2Result = optimizedFunc2(vect);
-//    double F1Result = optimizedFunc1(vect);
+    if(atoi(args.c_str()))
+    {
+        // Set the size of output image to 1200x780 pixels
 
-    bool calculationsPerformed;
-    cov.setDesiredError(0.1);
-    calculationsPerformed = performCalculations(cov, optimizedFunc1, 200, 50, 50, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3);
-    if(!calculationsPerformed)
-        return -1;
-    cov.setDesiredError(1);
-    calculationsPerformed = performCalculations(cov, optimizedFunc2, 200, 50, 50, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.7);
-    if(!calculationsPerformed)
-        return -1;
+        CoevolutionEngineST cov;
+        std::function<double(Genotype)> optimizedFunc1;
+        std::function<double(Genotype)> optimizedFunc2;
+        initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
+
+        bool isOMPOn = false;
+        bool calculationsPerformed;
+        cov.setDesiredError(0.1);
+        cov.setNoOfItersWithoutImprov(100);
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 100, 50, 2, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, true);
+        if(!calculationsPerformed)
+            return -1;
+        // Plot line from given x and y data. Color is selected automatically.
+        plt::figure_size(800, 600);
+        // Add graph title
+        plt::title("Algorithm progress for first function");
+        plt::xlabel("Iterations");
+        plt::ylabel("Function value");
+
+        // Set x-axis to interval
+        plt::xlim(-2., cov.x.back());
+        plt::ylim(cov.y.back(), cov.y.front());
+        plt::plot(cov.x, cov.y, "r-");
+        plt::show();
+
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 100, 50, 2, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, true);
+        if(!calculationsPerformed)
+            return -1;
+        // Plot line from given x and y data. Color is selected automatically.
+        // Set x-axis to interval
+        plt::title("Algorithm progress for second function");
+        plt::xlabel("Iterations");
+        plt::ylabel("Function value");
+        plt::xlim(cov.x.front(), cov.x.back());
+        plt::ylim(cov.y.back(), cov.y.front());
+        plt::plot(cov.x, cov.y, "r-");
+        plt::show();
+    }
+    else
+    {
+        return test();
+    }
     return 0;
 }

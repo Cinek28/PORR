@@ -23,7 +23,7 @@ public:
 
     void init(const int & lowerBound, const int & upperBound);
 
-    void cross(std::default_random_engine &generator, bool ompOn);
+    void cross(const double &crossingCoeff, std::default_random_engine &generator, bool ompOn);
 
     void mutate(const double &normalDistVariance, std::default_random_engine &generator, bool ompOn);
 
@@ -35,8 +35,6 @@ public:
     size_t getChildrenCount() const { return mChildrenCount;};
     size_t getSize() const {return mPopulationSize + mChildrenCount;};
 
-    std::unique_ptr<std::vector<std::unique_ptr<Genotype>>> pPopulationData;
-
     double getUpperBound() const {return mUpperBound;};
     double getLowerBound() const {return mLowerBound;};
 
@@ -44,6 +42,8 @@ public:
 
 
 private:
+
+    std::unique_ptr<std::vector<std::unique_ptr<Genotype>>> pPopulationData;
 
     size_t mPopulationSize;
     size_t mChildrenCount;

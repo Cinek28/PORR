@@ -49,49 +49,35 @@ const Genotype * Population::getBestFit(std::function<double (Genotype &)> func,
               [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
                     {return func(*a.get()) < func(*b.get());});
 
-//    __gnu_parallel::sort(pPopulationData->begin(), pPopulationData->end(),
-//                         [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
-//                         {return func(*a.get()) < func(*b.get());});
-
-    //TODO: USE libstdc++ parallel mode or sort in omp mode if ompOn
-
     const Genotype * bestFittingGenotype = pPopulationData->at(0).get();
     return bestFittingGenotype;
 }
 
-void Population::cross(std::default_random_engine &generator, bool ompOn)
+void Population::cross(const double &crossingCoeff, std::default_random_engine &generator, bool ompOn)
 {//http://www.scholarpedia.org/article/Evolution_strategies
     unsigned int noOfCrossedGenotypes = mChildrenCount;
+    if(crossingCoeff < 1.0 && crossingCoeff >= 0.0)
+        noOfCrossedGenotypes = crossingCoeff*mChildrenCount;
 
     //Randomly shuffle elements and get just first <crossingCoeff>*children_size number of elements:
     auto iter = std::next(pPopulationData->begin(), mPopulationSize);
     std::random_shuffle ( pPopulationData->begin(), iter );
-    //TODO: USE libstdc++ parallel mode or random_shuffle in omp mode if ompOn
     std::uniform_int_distribution<int> uniformDist(0,1);
 
-    unsigned int genotypeSize = pPopulationData->at(0)->size();
-    //TODO: DONE OMP Parallel for + simd
-    if(ompOn){
-        #pragma omp for simd collapse(2)
-        for(unsigned int i = 0; i < noOfCrossedGenotypes; i=i+2)
-        {
-            for(unsigned int j = 0; j < genotypeSize; ++j)
-            {
-                int parentChoice = uniformDist(generator);
-                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + parentChoice)->at(j);
-                pPopulationData->at(i + 1 + mPopulationSize)->at(j) = pPopulationData->at(i  + 1 - parentChoice)->at(j);
+    unsigned int size = pPopulationData->at(0)->size();
+    //TODO: OMP Parallel
+    if(ompOn) {
+        #pragma omp parallel for simd collapse(2)
+        for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
+            for (unsigned int j = 0; j < size; ++j) {
+                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
             }
         }
     }
-    else{
-        #pragma omp for simd collapse(2)
-        for(unsigned int i = 0; i < noOfCrossedGenotypes; i=i+2)
-        {
-            for(unsigned int j = 0; j < genotypeSize; ++j)
-            {
-                int parentChoice = uniformDist(generator);
-                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i + parentChoice)->at(j);
-                pPopulationData->at(i + 1 + mPopulationSize)->at(j) = pPopulationData->at(i  + 1 - parentChoice)->at(j);
+    else {
+        for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
+            for (unsigned int j = 0; j < size; ++j) {
+                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
             }
         }
     }
@@ -102,9 +88,8 @@ void Population::mutate(const double &normalDistVariance, std::default_random_en
     unsigned int size = pPopulationData->at(0)->size(); // all vectors are of the same size
     //TODO: DONE OMP Parallel
     std::normal_distribution<double> distribution(0.0,normalDistVariance);
-
-    if(ompOn)
-    {
+    if(ompOn){
+        #pragma omp parallel for simd collapse(2)
         for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
         {
             for(unsigned int j = 0; j < size; ++j)
@@ -120,7 +105,6 @@ void Population::mutate(const double &normalDistVariance, std::default_random_en
         }
     }
     else{
-        #pragma omp for simd collapse(2)
         for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
         {
             for(unsigned int j = 0; j < size; ++j)
