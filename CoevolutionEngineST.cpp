@@ -2,6 +2,7 @@
 // Created by Damian on 2018-11-15.
 //
 
+#include <algorithm>
 #include "CoevolutionEngineST.h"
 
 bool CoevolutionEngineST::setPopulation(const size_t &popSize, const size_t childCnt, const size_t &genSize,
@@ -13,13 +14,14 @@ bool CoevolutionEngineST::setPopulation(const size_t &popSize, const size_t chil
     for(int i=0;i<populationCnt;i++){
         pCalcPopulation[i].reset(new Population(popSize, childCnt,genSize));
     }
-
+    x.clear();
+    y.clear();
     return init(lowerBound, upperBound);
 }
 
 bool CoevolutionEngineST::init(const double &lowerBound, const double &upperBound)
 {
-    if(lowerBound > upperBound || pCalcPopulation == nullptr)
+    if(lowerBound > upperBound || pCalcPopulation[0] == nullptr)
     {
         std::cout << "Parameters initiated incorrectly (lower bound > upper bound or population not set" << std::endl;
         return false;
@@ -34,7 +36,7 @@ bool CoevolutionEngineST::init(const double &lowerBound, const double &upperBoun
 
 const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, bool ompOn)
 {
-    if(pCalcPopulation == nullptr)
+    if(pCalcPopulation.size() == 0)
     {
         std::cout << "Population not set" << std::endl;
         return nullptr;
@@ -47,34 +49,43 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
 
     bool calcFinished = false;
 
+
     while(!calcFinished)
     {
+#pragma omp parallel for default(shared)
         for(int i=0;i<populationCnt;i++){
             if(CheckTerminationCriteria(criteria, iters[i], ompOn, i)){
                 calcFinished = true;
-                break;
             }
-            pCalcPopulation[i]->cross(mGenerator, ompOn);
+            pCalcPopulation[i]->cross(0.2,mGenerator, ompOn);
             pCalcPopulation[i]->mutate(mutationVariance, mGenerator, ompOn);
             pCalcPopulation[i]->getBestFit(func, ompOn);
         }
-        if(iterationsCounter % 10 == 0){
+        if(iterationsCounter % 20 == 0){
+            std::sort(pCalcPopulation.begin(), pCalcPopulation.end(),
+                      [&](Population & a, Population & b)
+                      {return func(*(a.at(0))) < func(*(b.at(0)));});
+            for(int i =0; i < populationCnt;++i)
+            {
+                for(int j = 1; j < pCalcPopulation[i]->getSize();++j)
+                {
+                    for(int k = 0; k < pCalcPopulation[i]->at(j)->size(); ++k) {
+                        pCalcPopulation[i].get()->at(j)->at(k).first = pCalcPopulation[0].get()->at(j)->at(k).first;
+                        pCalcPopulation[i].get()->at(j)->at(k).second = pCalcPopulation[0].get()->at(j)->at(k).second;
+                    }
+                }
+            }
 
-            //getalldata
-            //sort all data
-            //write all data to threads
-            //std::sort(pPopulationData->begin(), pPopulationData->end(),
-            //              [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
-            //                    {return func(*a.get()) < func(*b.get());});
         }
         iterationsCounter++;
     }
     iterationsCount = iterationsCounter;
-    return pCalcPopulation->at(0);
+    return pCalcPopulation[0]->at(0);
 }
 
 
-bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn, int populationIter)
+bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn
+        , int populationIter)
 {
     double thisIterBestError = getBestFitError(ompOn, populationIter);
 
@@ -82,7 +93,7 @@ bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, 
     {
         if(thisIterBestError < mDesiredError)
         {
-            mBestFitError[populationIter] = thisIterBestError;
+            mBestFitError[populationIter] <= thisIterBestError;
             return true;
         }
     }
@@ -104,22 +115,18 @@ bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, 
     return false;
 }
 
-double CoevolutionEngineST::getBestFitError(bool ompOn, int populationIterator)
+double CoevolutionEngineST::getBestFitError(bool ompOn, int populationIter)
 {   //Calculating error ONLY (!!) where function minimum is point (0,0,0,...)
     //Fit error calculated as MEAN SQUARE ERROR of all values:
     double bestFitError = 0;
-    //TODO DONE OMP Parallel
-    if(ompOn){
-        for(unsigned int i = 0; i < pCalcPopulation[populationIterator]->at(0)->size();++i)
-        {
-            bestFitError += pow(((pCalcPopulation[populationIterator]->at(0))->at(i)).first,2)/pCalcPopulation[populationIterator]->at(0)->size();
-        }
-    }
-    else{
-        for(unsigned int i = 0; i < pCalcPopulation[populationIterator]->at(0)->size();++i)
-        {
-            bestFitError += pow(((pCalcPopulation[populationIterator]->at(0))->at(i)).first,2)/pCalcPopulation[populationIterator]->at(0)->size();
-        }
+    for(unsigned int i = 0; i < pCalcPopulation[0]->getSize();++i)
+    {
+        bestFitError += pow((pCalcPopulation[0]->at(i)->at(0).first,2))/pCalcPopulation[0]->getSize();
     }
     return bestFitError;
+}
+
+void CoevolutionEngineST::printPopulation()
+{
+    pCalcPopulation[0]->printPopulation();
 }

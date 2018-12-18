@@ -28,22 +28,27 @@ public:
 
 private:
 
-    unsigned int mNoOfItersWithoutImprov[populationCnt] = {0};
+    unsigned int mNoOfItersWithoutImprov;
     double mDesiredError;
     double mBestFitError[populationCnt];
     std::default_random_engine mGenerator;
-    std::unique_ptr<Population> pCalcPopulation[populationCnt] = {nullptr};
-    
+    std::vector<std::unique_ptr<Population>> pCalcPopulation;
 
     bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn, int populationIter);
 
 public:
 
+    std::vector<double> x;
+    std::vector<double> y;//vectors to plot
+
     CoevolutionEngineST(const double & desiredError = 0.1,const unsigned int & noOfItersWithoutImprov = 20):
+            mNoOfItersWithoutImprov(noOfItersWithoutImprov),
             mDesiredError(desiredError)
     {
         std::random_device r;
         mGenerator.seed(r());
+        x.clear();
+        y.clear();
     };
 
     bool setPopulation(const size_t &popSize, const size_t childCnt, const size_t & genSize,
@@ -57,6 +62,9 @@ public:
     void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};
 
     double getBestFitError(bool ompOn, int populationIter);
+
+    unsigned int getNoOfItersWithoutImprov() const {return mNoOfItersWithoutImprov;};
+    void setNoOfItersWithoutImprov(const unsigned int noOfIters) {mNoOfItersWithoutImprov = noOfIters;};
 
     void printPopulation();
 };
