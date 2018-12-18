@@ -9,7 +9,7 @@ void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedF
                                      std::function<double(Genotype)> &optimizedFunc2) {
     optimizedFunc1= [](Genotype genotype)
     {
-        double sum = 0, prod = 1.0;//TODO DONE simd
+        double sum = 0, prod = 1.0;
         for(unsigned int i = 0; i < genotype.size();++i)
         {
             sum += pow(genotype[i].first,2);
@@ -19,7 +19,7 @@ void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedF
     };
     optimizedFunc2= [](Genotype genotype)
     {
-        double ex2 = 0, ecos2px = 0;//TODO DONE simd
+        double ex2 = 0, ecos2px = 0;
         for (unsigned int i = 0; i < genotype.size(); ++i) {
             ex2 += pow(genotype[i].first, 2);
             ecos2px += cos(2 * M_PI * genotype[i].first);
