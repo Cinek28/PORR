@@ -10,8 +10,6 @@
 #include <omp.h>
 #include "Population.h"
 
-#define populationCnt 5
-
 class CoevolutionEngineST {
 public:
 
@@ -26,20 +24,18 @@ public:
             "DESIRED_ERROR",
     };
 
+    std::vector<double> x,y;
+
 private:
 
     unsigned int mNoOfItersWithoutImprov;
-    double mDesiredError;
-    double mBestFitError[populationCnt];
+    double mDesiredError, mBestFitError;
     std::default_random_engine mGenerator;
-    std::vector<std::unique_ptr<Population>> pCalcPopulation;
+    std::unique_ptr<Population> pCalcPopulation = nullptr;
 
-    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn, int populationIter);
+    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn);
 
 public:
-
-    std::vector<double> x;
-    std::vector<double> y;//vectors to plot
 
     CoevolutionEngineST(const double & desiredError = 0.1,const unsigned int & noOfItersWithoutImprov = 20):
             mNoOfItersWithoutImprov(noOfItersWithoutImprov),
@@ -61,7 +57,7 @@ public:
     double getDesiredError() const {return mDesiredError;};
     void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};
 
-    double getBestFitError(bool ompOn, int populationIter);
+    double getBestFitError(bool ompOn);
 
     unsigned int getNoOfItersWithoutImprov() const {return mNoOfItersWithoutImprov;};
     void setNoOfItersWithoutImprov(const unsigned int noOfIters) {mNoOfItersWithoutImprov = noOfIters;};

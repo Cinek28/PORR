@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
         args = argv[1];
     }
 
-    if(atoi(args.c_str()))
+    if(!atoi(args.c_str()))
     {
         // Set the size of output image to 1200x780 pixels
 
