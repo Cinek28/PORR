@@ -50,7 +50,7 @@ void write_text_to_log_file( const std::string &text )
 bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
                          int childCnt, int genSize, int lowerBound, int upperBound,
                          CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName, double mutationVariance,
-                         bool isOMPOn) {
+                         int numberOfThreads) {
 
     std::ostringstream popInitStr;
     bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
@@ -71,7 +71,7 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
     write_text_to_log_file(popInitStr.str());
     int iterationsCount;
     double startF1 = omp_get_wtime( );
-    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, isOMPOn);
+    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, numberOfThreads);
     double endF1 = omp_get_wtime( );
     double singleIterationExecutionTime = 1000 * (double)(endF1-startF1)/(double)iterationsCount;
     std::ostringstream popResultStr, popExecTimeStr;

@@ -4,7 +4,6 @@
 
 #include "Population.h"
 #include <algorithm>
-#include <parallel/algorithm>
 
 
 Population::Population(const size_t &popSize, const size_t &childCnt, const size_t &genSize):
@@ -42,55 +41,52 @@ const Genotype* Population::at(unsigned int index)
     return pPopulationData->at(index).get();
 }
 
-const Genotype * Population::getBestFit(std::function<double (Genotype &)> func, bool ompOn)
+const Genotype * Population::getBestFit(std::function<double (Genotype &)> func, int thread, int numberOfThreads)
 {
-    //Sequential version:
-    std::sort(pPopulationData->begin(), pPopulationData->end(),
+    unsigned int threadChildrenCount = mChildrenCount/numberOfThreads;
+    unsigned int threadPopulation = mPopulationSize/numberOfThreads;
+
+    auto endIter = std::next(pPopulationData->begin(), thread * (threadPopulation + threadChildrenCount));
+    auto beginningIter = std::next(pPopulationData->begin(), (thread - 1) * (threadPopulation + threadChildrenCount));
+
+    std::sort(beginningIter, endIter,
               [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
                     {return func(*a.get()) < func(*b.get());});
 
-    const Genotype * bestFittingGenotype = pPopulationData->at(0).get();
+    const Genotype * bestFittingGenotype = pPopulationData->at((thread - 1) * (threadPopulation + threadChildrenCount)).get();
+    double result = func(*pPopulationData->at((thread - 1) * (threadPopulation + threadChildrenCount)));
     return bestFittingGenotype;
 }
 
-void Population::cross(const double &crossingCoeff, std::default_random_engine &generator, bool ompOn)
+void Population::cross(const double &crossingCoeff, std::default_random_engine &generator, int thread, int numberOfThreads)
 {//http://www.scholarpedia.org/article/Evolution_strategies
-    unsigned int noOfCrossedGenotypes = mChildrenCount;
+    unsigned int threadChildrenCount = mChildrenCount/numberOfThreads;
+    unsigned int threadPopulation = mPopulationSize/numberOfThreads;
+    unsigned int noOfCrossedGenotypes = threadChildrenCount;
     if(crossingCoeff < 1.0 && crossingCoeff >= 0.0)
-        noOfCrossedGenotypes = crossingCoeff*mChildrenCount;
+        noOfCrossedGenotypes = crossingCoeff*noOfCrossedGenotypes;
 
     //Randomly shuffle elements and get just first <crossingCoeff>*children_size number of elements:
-    auto iter = std::next(pPopulationData->begin(), mPopulationSize);
-    std::random_shuffle ( pPopulationData->begin(), iter );
+    auto endIter = std::next(pPopulationData->begin(), thread * (threadPopulation + threadChildrenCount));
+    auto beginningIter = std::next(pPopulationData->begin(), (thread - 1) * (threadPopulation + threadChildrenCount));
+    std::random_shuffle ( beginningIter, endIter );
     std::uniform_int_distribution<int> uniformDist(0,1);
 
-    unsigned int size = pPopulationData->at(0)->size();
-    //TODO: OMP Parallel
-    if(ompOn) {
-        #pragma omp parallel for simd collapse(2)
-        for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
+    unsigned int size = pPopulationData->at((thread - 1)*(threadPopulation + threadChildrenCount))->size();
+        for (unsigned int i = (thread - 1) * (threadPopulation + threadChildrenCount); i < (thread - 1) * (threadPopulation + threadChildrenCount) + noOfCrossedGenotypes; ++i) {
             for (unsigned int j = 0; j < size; ++j) {
-                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
+                pPopulationData->at(i + threadPopulation)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
             }
         }
-    }
-    else {
-        for (unsigned int i = 0; i < noOfCrossedGenotypes; ++i) {
-            for (unsigned int j = 0; j < size; ++j) {
-                pPopulationData->at(i + mPopulationSize)->at(j) = pPopulationData->at(i+uniformDist(generator))->at(j);
-            }
-        }
-    }
 }
 
-void Population::mutate(const double &normalDistVariance, std::default_random_engine &generator, bool ompOn)
+void Population::mutate(const double &normalDistVariance, std::default_random_engine &generator, int thread, int numberOfThreads)
 {
-    unsigned int size = pPopulationData->at(0)->size(); // all vectors are of the same size
-    //TODO: DONE OMP Parallel
+    unsigned int threadChildrenCount = mChildrenCount/numberOfThreads;
+    unsigned int threadPopulation = mPopulationSize/numberOfThreads;
+    unsigned int size = pPopulationData->at((thread - 1)*(threadPopulation + threadChildrenCount))->size(); // all vectors are of the same size
     std::normal_distribution<double> distribution(0.0,normalDistVariance);
-    if(ompOn){
-        #pragma omp parallel for simd collapse(2)
-        for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
+        for(unsigned int i = ((thread - 1) * (threadPopulation + threadChildrenCount) + threadPopulation); i < thread * (threadPopulation + threadChildrenCount); ++i)
         {
             for(unsigned int j = 0; j < size; ++j)
             {
@@ -103,22 +99,6 @@ void Population::mutate(const double &normalDistVariance, std::default_random_en
                     pPopulationData->at(i)->at(j).first = mLowerBound;
             }
         }
-    }
-    else{
-        for(unsigned int i = mPopulationSize; i < mPopulationSize + mChildrenCount; ++i)
-        {
-            for(unsigned int j = 0; j < size; ++j)
-            {
-                pPopulationData->at(i)->at(j).second *= exp(distribution(generator));
-                std::normal_distribution<double> distr(0.0,pPopulationData->at(i)->at(j).second);
-                pPopulationData->at(i)->at(j).first += pPopulationData->at(i)->at(j).second*distr(generator);
-                if(pPopulationData->at(i)->at(j).first > mUpperBound)
-                    pPopulationData->at(i)->at(j).first = mUpperBound;
-                else if (pPopulationData->at(i)->at(j).first < mLowerBound)
-                    pPopulationData->at(i)->at(j).first = mLowerBound;
-            }
-        }
-    }
 }
 
 void Population::printPopulation() const

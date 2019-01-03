@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(PORR)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -23,5 +23,5 @@ add_executable(PORR
         matplotlibcpp.h
         )
 
-target_include_directories(PORR PRIVATE ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(PORR ${PYTHON_LIBRARIES})
+#target_include_directories(PORR PRIVATE ${PYTHON_INCLUDE_DIRS})
+#target_link_libraries(PORR ${PYTHON_LIBRARIES})

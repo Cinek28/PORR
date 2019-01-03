@@ -2,6 +2,7 @@
 // Created by Damian on 2018-11-15.
 //
 
+#include <algorithm>
 #include "CoevolutionEngineST.h"
 
 bool CoevolutionEngineST::setPopulation(const size_t &popSize, const size_t childCnt, const size_t &genSize,
@@ -29,7 +30,7 @@ bool CoevolutionEngineST::init(const double &lowerBound, const double &upperBoun
     return true;
 }
 
-const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, bool ompOn)
+const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, int numberOfThreads)
 {
     if(pCalcPopulation == nullptr)
     {
@@ -37,29 +38,40 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
         return nullptr;
     }
     unsigned int iters = 0, iterationsCounter = 0;
-    mBestFitError = getBestFitError(ompOn);
 
+    const Genotype * bestFits[numberOfThreads];
+    bestFits[0] = pCalcPopulation->at(0);
 
-    while(!CheckTerminationCriteria(criteria, iters, ompOn))
+    mBestFitError = getBestFitError(bestFits[0]);
+
+    while(!CheckTerminationCriteria(criteria, iters, bestFits[0]))
     {
-        pCalcPopulation->cross(0.4, mGenerator, ompOn);
-        pCalcPopulation->mutate(mutationVariance, mGenerator, ompOn);
-        pCalcPopulation->getBestFit(func, ompOn);
-        iterationsCounter++;
-        if(pCalcPopulation->at(0)->size() == 2)
-        {
-            x.push_back(iterationsCounter);
-            y.push_back(func(*pCalcPopulation->at(0)));
+#pragma omp parallel for
+        for(int thread=1;thread<=numberOfThreads;thread++){
+            pCalcPopulation->cross(0.5, mGenerator, thread, numberOfThreads);
+            pCalcPopulation->mutate(mutationVariance, mGenerator, thread, numberOfThreads);
+            bestFits[thread] = pCalcPopulation->getBestFit(func, thread, numberOfThreads);
         }
+
+        std::sort(bestFits, bestFits + numberOfThreads,
+                  [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
+                  {return func(*a.get()) < func(*b.get());});
+
+        iterationsCounter++;
+//        if(pCalcPopulation->at(0)->size() == 2)
+//        {
+//            x.push_back(iterationsCounter);
+//            y.push_back(func(*pCalcPopulation->at(0)));
+//        }
     }
     iterationsCount = iterationsCounter;
-    return pCalcPopulation->at(0);
+    return bestFits[0];
 }
 
 
-bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, bool ompOn)
+bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, const Genotype * bestFit)
 {
-    double thisIterBestError = getBestFitError(ompOn);
+    double thisIterBestError = getBestFitError(bestFit);
 
     if(criteria == DESIRED_ERROR)
     {
@@ -87,13 +99,13 @@ bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, 
     return false;
 }
 
-double CoevolutionEngineST::getBestFitError(bool ompOn)
+double CoevolutionEngineST::getBestFitError(const Genotype * bestFit)
 {   //Calculating error ONLY (!!) where function minimum is point (0,0,0,...)
     //Fit error calculated as MEAN SQUARE ERROR of all values:
     double bestFitError = 0;
-    for(unsigned int i = 0; i < pCalcPopulation->at(0)->size();++i)
+    for(unsigned int i = 0; i < bestFit->size();++i)
     {
-        bestFitError += pow(((pCalcPopulation->at(0))->at(i)).first,2)/pCalcPopulation->at(0)->size();
+        bestFitError += pow(((bestFit)->at(i)).first,2)/bestFit->size();
     }
     return bestFitError;
 }
