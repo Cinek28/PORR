@@ -54,7 +54,6 @@ const Genotype * Population::getBestFit(std::function<double (Genotype &)> func,
                     {return func(*a.get()) < func(*b.get());});
 
     const Genotype * bestFittingGenotype = pPopulationData->at((thread - 1) * (threadPopulation + threadChildrenCount)).get();
-    double result = func(*pPopulationData->at((thread - 1) * (threadPopulation + threadChildrenCount)));
     return bestFittingGenotype;
 }
 
@@ -67,7 +66,7 @@ void Population::cross(const double &crossingCoeff, std::default_random_engine &
         noOfCrossedGenotypes = crossingCoeff*noOfCrossedGenotypes;
 
     //Randomly shuffle elements and get just first <crossingCoeff>*children_size number of elements:
-    auto endIter = std::next(pPopulationData->begin(), thread * (threadPopulation + threadChildrenCount));
+    auto endIter = std::next(pPopulationData->begin(), (thread - 1) * (threadPopulation + threadChildrenCount) + threadPopulation);
     auto beginningIter = std::next(pPopulationData->begin(), (thread - 1) * (threadPopulation + threadChildrenCount));
     std::random_shuffle ( beginningIter, endIter );
     std::uniform_int_distribution<int> uniformDist(0,1);

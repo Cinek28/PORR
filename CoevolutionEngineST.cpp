@@ -39,30 +39,32 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
     }
     unsigned int iters = 0, iterationsCounter = 0;
 
-    const Genotype * bestFits[numberOfThreads];
-    bestFits[0] = pCalcPopulation->at(0);
+    Genotype * bestFits[numberOfThreads];
+    bestFits[0] = const_cast<Genotype*>(pCalcPopulation->at(0));
 
     mBestFitError = getBestFitError(bestFits[0]);
 
+    double err = mBestFitError;
+
     while(!CheckTerminationCriteria(criteria, iters, bestFits[0]))
     {
-#pragma omp parallel for
+        #pragma omp parallel for
         for(int thread=1;thread<=numberOfThreads;thread++){
             pCalcPopulation->cross(0.5, mGenerator, thread, numberOfThreads);
             pCalcPopulation->mutate(mutationVariance, mGenerator, thread, numberOfThreads);
-            bestFits[thread] = pCalcPopulation->getBestFit(func, thread, numberOfThreads);
+            bestFits[thread - 1] = const_cast<Genotype*>(pCalcPopulation->getBestFit(func, thread, numberOfThreads));
         }
 
         std::sort(bestFits, bestFits + numberOfThreads,
-                  [&](const std::unique_ptr<Genotype> & a, const std::unique_ptr<Genotype> & b)
-                  {return func(*a.get()) < func(*b.get());});
+                  [&](Genotype* & a, Genotype* & b)
+                  {return func(*a) < func(*b);});
 
         iterationsCounter++;
-//        if(pCalcPopulation->at(0)->size() == 2)
-//        {
-//            x.push_back(iterationsCounter);
-//            y.push_back(func(*pCalcPopulation->at(0)));
-//        }
+        if(pCalcPopulation->at(0)->size() == 2)
+        {
+            x.push_back(iterationsCounter);
+            y.push_back(func(*pCalcPopulation->at(0)));
+        }
     }
     iterationsCount = iterationsCounter;
     return bestFits[0];

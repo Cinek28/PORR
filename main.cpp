@@ -28,11 +28,13 @@ int main(int argc, char* argv[]) {
         std::function<double(Genotype)> optimizedFunc2;
         initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
 
-        bool isOMPOn = false;
+        int numberOfThreads = 4;
         bool calculationsPerformed;
-        cov.setDesiredError(0.1);
+        cov.setDesiredError(0.01);
         cov.setNoOfItersWithoutImprov(100);
-        calculationsPerformed = performCalculations(cov, optimizedFunc1, 400, 48, 30, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, 1);
+        omp_set_dynamic(0);
+        omp_set_num_threads(numberOfThreads);
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 400, 48, 30, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3, numberOfThreads);
         if(!calculationsPerformed)
             return -1;
         // Plot line from given x and y data. Color is selected automatically.
@@ -48,7 +50,7 @@ int main(int argc, char* argv[]) {
 //        plt::plot(cov.x, cov.y, "r-");
 //        plt::show();
 // liczba dzieci podzielna przez 2*liczbe watkow, a wielkosc populacji przez liczbe watkow
-        calculationsPerformed = performCalculations(cov, optimizedFunc2, 400, 48, 30, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, 1);
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 400, 48, 30, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.3, numberOfThreads);
         if(!calculationsPerformed)
             return -1;
         // Plot line from given x and y data. Color is selected automatically.

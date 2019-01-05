@@ -74,16 +74,19 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
     const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, numberOfThreads);
     double endF1 = omp_get_wtime( );
     double singleIterationExecutionTime = 1000 * (double)(endF1-startF1)/(double)iterationsCount;
-    std::ostringstream popResultStr, popExecTimeStr;
-    std::cout << "Solution: " << std::endl;
-    popResultStr << "Solution: ";
+    std::ostringstream popXResultStr, popExecTimeStr, popYResultStr;
+    std::cout << "Solution [" << optimizedFuncName <<  ", X]: " << std::endl;
+    popXResultStr << "Solution [" << optimizedFuncName << ",X]: ";
     for(unsigned int i = 0; i < gen1->size(); ++i)
     {
         std::cout << gen1->at(i).first << ", ";
-        popResultStr << gen1->at(i).first << ", ";
+        popXResultStr << gen1->at(i).first << ", ";
     }
-    write_text_to_log_file(popResultStr.str());
-    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl;
+    std::cout << std::endl << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
+    popYResultStr << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
+    write_text_to_log_file(popXResultStr.str());
+    write_text_to_log_file(popYResultStr.str());
+    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
     popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
     write_text_to_log_file(popExecTimeStr.str());
     return true;
