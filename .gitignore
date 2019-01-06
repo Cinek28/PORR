@@ -5,3 +5,5 @@ cmake-build/
 .vs/
 bin/
 /results
+*.log
+cmake-build-debug-mingw
