@@ -5,6 +5,8 @@
 #ifndef PORR_UTILS_H
 #define PORR_UTILS_H
 
+#include <Results.h>
+
 void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
                                      std::function<double(Genotype)> &optimizedFunc2) {
     optimizedFunc1= [](Genotype genotype)
@@ -47,7 +49,7 @@ void write_text_to_log_file( const std::string &text )
     }
 }
 
-bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
+Result* performCalculations(CoevolutionEngineST &cov, const std::function<double(Genotype)> &optimizedFunc, int popSize,
                          int childCnt, int genSize, int lowerBound, int upperBound,
                          CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName, double mutationVariance,
                          int numberOfThreads) {
@@ -56,8 +58,9 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
     bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
     if(!populationSet){
         popInitStr << "Population initialization error!";
-        write_text_to_log_file(popInitStr.str());
-        return false;
+        //write_text_to_log_file(popInitStr.str());
+        Result * result = new Result();
+        return result;
     }
 
     popInitStr << "Population initialized with params:"
@@ -68,7 +71,7 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
                << ", upperBound: " << upperBound
                << ", function: " << optimizedFuncName
                << ", criteria: " << cov.enum2cChar[criteria];
-    write_text_to_log_file(popInitStr.str());
+    //write_text_to_log_file(popInitStr.str());
     int iterationsCount;
     double startF1 = omp_get_wtime( );
     const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, numberOfThreads);
@@ -82,14 +85,16 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
         std::cout << gen1->at(i).first << ", ";
         popXResultStr << gen1->at(i).first << ", ";
     }
-    std::cout << std::endl << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
-    popYResultStr << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
-    write_text_to_log_file(popXResultStr.str());
-    write_text_to_log_file(popYResultStr.str());
-    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
-    popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
-    write_text_to_log_file(popExecTimeStr.str());
-    return true;
+    double result = optimizedFunc(*gen1);
+    std::cout << std::endl << "Solution [" << optimizedFuncName <<  ", Y]: " << result;
+    popYResultStr << "Solution [" << optimizedFuncName <<  ", Y]: " << result;
+    //write_text_to_log_file(popXResultStr.str());
+    //write_text_to_log_file(popYResultStr.str());
+    double executionTime = endF1 - startF1;
+    std::cout << "\nExecution Time: " << executionTime << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
+    popExecTimeStr << "Execution Time: " << executionTime << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
+    //write_text_to_log_file(popExecTimeStr.str());
+    return new Result(executionTime, result);
 }
 
 bool test()

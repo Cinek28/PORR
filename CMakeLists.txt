@@ -21,7 +21,7 @@ add_executable(PORR
         Population.cpp
         Population.h
         matplotlibcpp.h
-        )
+        Results.h)
 
 #target_include_directories(PORR PRIVATE ${PYTHON_INCLUDE_DIRS})
 #target_link_libraries(PORR ${PYTHON_LIBRARIES})
