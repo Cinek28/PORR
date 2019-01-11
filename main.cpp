@@ -28,15 +28,60 @@ int main(int argc, char* argv[]) {
         std::function<double(Genotype)> optimizedFunc2;
         initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
 
-        int numberOfThreads = 4;
+        int numberOfThreads = 8;
         bool calculationsPerformed;
-        cov.setDesiredError(0.01);
+        cov.setDesiredError(0.05);
         cov.setNoOfItersWithoutImprov(100);
         omp_set_dynamic(0);
-        omp_set_num_threads(numberOfThreads);
-        calculationsPerformed = performCalculations(cov, optimizedFunc1, 400, 48, 30, -40, 40, CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3, numberOfThreads);
-        if(!calculationsPerformed)
-            return -1;
+
+        for(int threads=1;threads <= 12; threads++){
+            if(!(threads == 1 || threads == 4 || threads == 8 || threads == 12))
+                continue;
+            omp_set_num_threads(threads);
+            cov.setNoOfItersWithoutImprov(100);
+
+            calculationsPerformed = performCalculations(cov, optimizedFunc1, 200, 32, 2, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+            calculationsPerformed = performCalculations(cov, optimizedFunc2, 200, 32, 2, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+
+            calculationsPerformed = performCalculations(cov, optimizedFunc1, 200, 32, 10, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+            calculationsPerformed = performCalculations(cov, optimizedFunc2, 200, 32, 10, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+
+            cov.setNoOfItersWithoutImprov(80);
+
+            calculationsPerformed = performCalculations(cov, optimizedFunc1, 400, 64, 20, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+            calculationsPerformed = performCalculations(cov, optimizedFunc2, 400, 64, 20, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+
+            cov.setNoOfItersWithoutImprov(65);
+
+            calculationsPerformed = performCalculations(cov, optimizedFunc1, 600, 96, 50, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+            calculationsPerformed = performCalculations(cov, optimizedFunc2, 600, 96, 50, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+
+            cov.setNoOfItersWithoutImprov(50);
+
+            calculationsPerformed = performCalculations(cov, optimizedFunc1, 1200, 192, 100, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+            calculationsPerformed = performCalculations(cov, optimizedFunc2, 1200, 192, 100, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+            if(!calculationsPerformed)
+                return -1;
+        }
+
         // Plot line from given x and y data. Color is selected automatically.
 //        plt::figure_size(800, 600);
 //        // Add graph title
@@ -50,9 +95,7 @@ int main(int argc, char* argv[]) {
 //        plt::plot(cov.x, cov.y, "r-");
 //        plt::show();
 // liczba dzieci podzielna przez 2*liczbe watkow, a wielkosc populacji przez liczbe watkow
-        calculationsPerformed = performCalculations(cov, optimizedFunc2, 400, 48, 30, -30, 30, CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.3, numberOfThreads);
-        if(!calculationsPerformed)
-            return -1;
+
         // Plot line from given x and y data. Color is selected automatically.
         // Set x-axis to interval
 //        plt::title("Algorithm progress for second function");

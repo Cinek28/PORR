@@ -52,43 +52,51 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
                          CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName, double mutationVariance,
                          int numberOfThreads) {
 
-    std::ostringstream popInitStr;
-    bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
-    if(!populationSet){
-        popInitStr << "Population initialization error!";
-        write_text_to_log_file(popInitStr.str());
-        return false;
+    std::ostringstream resultStr;
+
+    double minimumExecutionTime = 999999, minimumETResult, minimumETSingleIterationTime;
+    double maximumExecutionTime = 0, maximumETResult, maximumETSingleIterationTime;
+    double meanExecutionTime = 0, meanETResult, meanETSingleIterationTime;
+
+    std::cout << "Threads: " << numberOfThreads << ",  " << optimizedFuncName << ", n: " << genSize;
+
+    for(int i=0;i<5;i++){
+        bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
+        if(!populationSet){
+            return false;
+        }
+        int iterationsCount;
+        double startF1 = omp_get_wtime( );
+        const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, numberOfThreads);
+        double endF1 = omp_get_wtime( );
+        double singleIterationExecutionTime = 1000 * (double)(endF1-startF1)/(double)iterationsCount;
+        std::cout << std::endl << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
+        std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
+        meanExecutionTime += (endF1 - startF1);
+        meanETResult += optimizedFunc(*gen1);
+        meanETSingleIterationTime += singleIterationExecutionTime;
+        if(endF1 - startF1 < minimumExecutionTime){
+            minimumExecutionTime = endF1 - startF1;
+            minimumETSingleIterationTime = singleIterationExecutionTime;
+            minimumETResult = optimizedFunc(*gen1);
+        }
+        if(endF1 - startF1 > maximumExecutionTime){
+            maximumExecutionTime = endF1 - startF1;
+            maximumETSingleIterationTime = singleIterationExecutionTime;
+            maximumETResult = optimizedFunc(*gen1);
+        }
     }
 
-    popInitStr << "Population initialized with params:"
-               << " popSize: " << popSize
-               << ", childCnt: " << childCnt
-               << ", genSize: " << genSize
-               << ", lowerBound: " << lowerBound
-               << ", upperBound: " << upperBound
-               << ", function: " << optimizedFuncName
-               << ", criteria: " << cov.enum2cChar[criteria];
-    write_text_to_log_file(popInitStr.str());
-    int iterationsCount;
-    double startF1 = omp_get_wtime( );
-    const Genotype* gen1 = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, numberOfThreads);
-    double endF1 = omp_get_wtime( );
-    double singleIterationExecutionTime = 1000 * (double)(endF1-startF1)/(double)iterationsCount;
-    std::ostringstream popXResultStr, popExecTimeStr, popYResultStr;
-    std::cout << "Solution [" << optimizedFuncName <<  ", X]: " << std::endl;
-    popXResultStr << "Solution [" << optimizedFuncName << ",X]: ";
-    for(unsigned int i = 0; i < gen1->size(); ++i)
-    {
-        std::cout << gen1->at(i).first << ", ";
-        popXResultStr << gen1->at(i).first << ", ";
-    }
-    std::cout << std::endl << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
-    popYResultStr << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
-    write_text_to_log_file(popXResultStr.str());
-    write_text_to_log_file(popYResultStr.str());
-    std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
-    popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
-    write_text_to_log_file(popExecTimeStr.str());
+    meanExecutionTime = meanExecutionTime/5.;
+    meanETResult = meanETResult/5.;
+    meanETSingleIterationTime = meanETSingleIterationTime/5.;
+
+    resultStr << "Threads: " << numberOfThreads << ",  " << optimizedFuncName << ", n: " << genSize <<
+              ", meanET[s]: " << meanExecutionTime << ", meanSingleET[ms]: " << meanETSingleIterationTime << ", meanY: " << meanETResult <<
+              ", minET[s]: " << minimumExecutionTime << ", minSingleET:[ms]: " << minimumETSingleIterationTime << ", minY: " << minimumETResult <<
+              ", maxET[s]: " << maximumExecutionTime << ", maxSingleET[ms]: " << maximumETSingleIterationTime << ", maxY: " << maximumETResult;
+    write_text_to_log_file(resultStr.str());
+
     return true;
 }
 
