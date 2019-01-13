@@ -11,7 +11,6 @@
 #include <functional>
 #include <random>
 
-
 typedef std::vector<std::pair<double,double>> Genotype;
 
 class Population
@@ -27,7 +26,7 @@ public:
 
     void mutate(const double &normalDistVariance, std::default_random_engine &generator, int thread, int numberOfThreads);
 
-    const Genotype * getBestFit(std::function<double (Genotype &)> func, int thread, int numberOfThreads);
+    const Genotype * getBestFit(std::function<double (Genotype )> func, int thread, int numberOfThreads);
 
     const Genotype * at(unsigned int index);
 
@@ -39,6 +38,11 @@ public:
     double getLowerBound() const {return mLowerBound;};
 
     void printPopulation() const;
+
+    void setGenotypeValue(int iX, int iY, double value)
+    {
+        pPopulationData->at(iX)->at(iY).first = value;
+    };
 
 
 private:

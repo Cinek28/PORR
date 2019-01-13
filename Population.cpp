@@ -41,7 +41,7 @@ const Genotype* Population::at(unsigned int index)
     return pPopulationData->at(index).get();
 }
 
-const Genotype * Population::getBestFit(std::function<double (Genotype &)> func, int thread, int numberOfThreads)
+const Genotype * Population::getBestFit(std::function<double (Genotype )> func, int thread, int numberOfThreads)
 {
     unsigned int threadChildrenCount = mChildrenCount/numberOfThreads;
     unsigned int threadPopulation = mPopulationSize/numberOfThreads;

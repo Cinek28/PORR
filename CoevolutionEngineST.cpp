@@ -56,7 +56,7 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
         }
 
         std::sort(bestFits, bestFits + numberOfThreads,
-                  [&](Genotype* & a, Genotype* & b)
+                  [&](Genotype*  a, Genotype*  b)
                   {return func(*a) < func(*b);});
 
         iterationsCounter++;
@@ -69,7 +69,6 @@ const Genotype * CoevolutionEngineST::solve(std::function<double(Genotype)> func
     iterationsCount = iterationsCounter;
     return bestFits[0];
 }
-
 
 bool CoevolutionEngineST::CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, const Genotype * bestFit)
 {

@@ -5,6 +5,14 @@
 #ifndef PORR_UTILS_H
 #define PORR_UTILS_H
 
+#include <sstream>
+#include "mpi.h"
+
+std::string enum2cChar[2] = {
+        "NO_OF_ITERS_WITHOUT_IMPROV",
+        "DESIRED_ERROR",
+};
+
 void initializeOptimizationFunctions(std::function<double(Genotype)> &optimizedFunc1,
                                      std::function<double(Genotype)> &optimizedFunc2) {
     optimizedFunc1= [](Genotype genotype)
@@ -67,7 +75,7 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
                << ", lowerBound: " << lowerBound
                << ", upperBound: " << upperBound
                << ", function: " << optimizedFuncName
-               << ", criteria: " << cov.enum2cChar[criteria];
+               << ", criteria: " << enum2cChar[criteria];
     write_text_to_log_file(popInitStr.str());
     int iterationsCount;
     double startF1 = omp_get_wtime( );
@@ -89,6 +97,87 @@ bool performCalculations(CoevolutionEngineST &cov, const std::function<double(Ge
     std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
     popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
     write_text_to_log_file(popExecTimeStr.str());
+    return true;
+}
+
+bool performCalculationsMPI(const std::function<double(Genotype)> optimizedFunc, int popSize,
+                         int childCnt, int genSize, int lowerBound, int upperBound,
+                         CoevolutionEngineST::engineStopCriteria criteria, std::string optimizedFuncName, double mutationVariance) {
+
+    std::ostringstream popInitStr;
+    double startF1, endF1;
+    MPI_Init(nullptr,nullptr);
+    int comm_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    if(rank == 0)
+    {
+        popInitStr << "Population initialized with params:"
+                   << " popSize: " << popSize
+                   << ", childCnt: " << childCnt
+                   << ", genSize: " << genSize
+                   << ", lowerBound: " << lowerBound
+                   << ", upperBound: " << upperBound
+                   << ", function: " << optimizedFuncName
+                   << ", criteria: " << enum2cChar[criteria];
+        write_text_to_log_file(popInitStr.str());
+    }
+
+    Genotype* gen1 = nullptr;
+    double singleIterationExecutionTime = 0;
+    int iters = 0;
+
+        CoevolutionEngineSTMPI cov;
+        bool populationSet = cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
+        if(!populationSet){
+            popInitStr << "Population initialization error!";
+            write_text_to_log_file(popInitStr.str());
+            return false;
+        }
+
+        cov.setDesiredError(0.01);
+        cov.setNoOfItersWithoutImprov(100);
+
+        int iterationsCount;
+    if(rank == 0)
+    {
+        startF1 = omp_get_wtime( );
+    }
+        const Genotype* genTemp = cov.solve(optimizedFunc, criteria, mutationVariance, iterationsCount, 1);
+        if(rank == 0)
+        {
+            gen1 = const_cast<Genotype*>(genTemp);
+            iters = iterationsCount;
+        }
+    std::cout << "[" << rank  << "]" << "Waiting on barrier" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if(rank == 0)
+    {
+        endF1 = omp_get_wtime( );
+        singleIterationExecutionTime= 1000 * (double)(endF1-startF1)/(double)iters;
+        std::ostringstream popXResultStr, popExecTimeStr, popYResultStr;
+        std::cout << "Solution [" << optimizedFuncName <<  ", X]: " << std::endl;
+        popXResultStr << "Solution [" << optimizedFuncName << ",X]: ";
+        for(unsigned int i = 0; i < gen1->size(); ++i)
+        {
+            std::cout << gen1->at(i).first << ", ";
+            popXResultStr << gen1->at(i).first << ", ";
+        }
+        std::cout << std::endl << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
+        popYResultStr << "Solution [" << optimizedFuncName <<  ", Y]: " << optimizedFunc(*gen1);
+        write_text_to_log_file(popXResultStr.str());
+        write_text_to_log_file(popYResultStr.str());
+        std::cout << "\nExecution Time: " << endF1 - startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]" << std::endl << std::endl;
+        popExecTimeStr << "Execution Time: " << endF1-startF1 << " [s], Single Iteration Execution Time: " << singleIterationExecutionTime << " [ms]";
+        write_text_to_log_file(popExecTimeStr.str());
+    }
+
+    MPI_Finalize();
+
     return true;
 }
 

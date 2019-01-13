@@ -19,21 +19,14 @@ public:
         DESIRED_ERROR
     };
 
-    std::string enum2cChar[2] = {
-            "NO_OF_ITERS_WITHOUT_IMPROV",
-            "DESIRED_ERROR",
-    };
-
     std::vector<double> x,y;
 
-private:
+protected:
 
     unsigned int mNoOfItersWithoutImprov;
     double mDesiredError, mBestFitError;
     std::default_random_engine mGenerator;
     std::unique_ptr<Population> pCalcPopulation = nullptr;
-
-    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, const Genotype * bestFit);
 
 public:
 
@@ -47,17 +40,18 @@ public:
         y.clear();
     };
 
+    bool CheckTerminationCriteria(engineStopCriteria criteria, unsigned int & iters, const Genotype * bestFit);
     bool setPopulation(const size_t &popSize, const size_t childCnt, const size_t & genSize,
                        const double lowerBound = -1.0, const double upperBound = 1.0);
 
     bool init(const double & lowerBound, const double & upperBound);
 
-    const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, int numberOfThreads);
+    virtual const Genotype * solve(std::function<double (Genotype)> func, engineStopCriteria criteria, double mutationVariance, int & iterationsCount, int numberOfThreads);
 
     double getDesiredError() const {return mDesiredError;};
     void setDesiredError(const double & desiredError) { mDesiredError = desiredError;};
 
-    double getBestFitError(const Genotype *);
+    static double getBestFitError(const Genotype *);
 
     unsigned int getNoOfItersWithoutImprov() const {return mNoOfItersWithoutImprov;};
     void setNoOfItersWithoutImprov(const unsigned int noOfIters) {mNoOfItersWithoutImprov = noOfIters;};
