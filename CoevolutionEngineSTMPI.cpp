@@ -8,7 +8,7 @@
 
 #define DEBUG(...) printf(__VA_ARGS__)
 
-#define SHARE_RESULTS_ITERS 100
+#define SHARE_RESULTS_ITERS 200
 
 
 CoevolutionEngineSTMPI::CoevolutionEngineSTMPI(const double & desiredError,const unsigned int & noOfItersWithoutImprov)
@@ -37,7 +37,7 @@ const Genotype* CoevolutionEngineSTMPI::solve(std::function<double(Genotype)> fu
     double err = mBestFitError;
     stop = false;
 
-    while(!stop)
+    while(1)
     {
 //#pragma omp parallel for
         for(int thread=1;thread<=numberOfThreads;thread++){
@@ -56,13 +56,10 @@ const Genotype* CoevolutionEngineSTMPI::solve(std::function<double(Genotype)> fu
         {
             int owner = getBestResultOwner();
             shareBestResultGenotype(owner);
+            MPI_Barrier(MPI_COMM_WORLD);
             if(CheckTerminationCriteria(criteria, iters, pCalcPopulation->at(0)))
             {
-                stop = true;
-                if(getStop())
-                {
-                    break;
-                };
+                break;
             }
         }
 
@@ -86,7 +83,7 @@ int CoevolutionEngineSTMPI::getBestResultOwner()
     double error = getBestFitError(pCalcPopulation->at(0));
     if (rank != 0) {
         // slave
-        DEBUG("[%d] Sending best result = %f to master\n", rank, error);
+//        DEBUG("[%d] Sending best result = %f to master\n", rank, error);
         MPI_Send(&error, 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     } else {
         // master
@@ -98,14 +95,14 @@ int CoevolutionEngineSTMPI::getBestResultOwner()
         for (auto i = 1; i < comm_size; ++i) {
             MPI_Recv(&tempError, 1, MPI_DOUBLE, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
             results.emplace_back(tempError, status.MPI_SOURCE);
-            DEBUG("[0] Receiving error = %f from %d\n", tempError, status.MPI_SOURCE);
+//            DEBUG("[0] Receiving error = %f from %d\n", tempError, status.MPI_SOURCE);
         }
         std::sort(results.begin(), results.end());
         bestErrorOwnerID = results.begin()->second;
     }
     MPI_Bcast(&bestErrorOwnerID, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    DEBUG("[%d] bestErrorOwnerID = %d\n", rank, bestErrorOwnerID);
+//    DEBUG("[%d] bestErrorOwnerID = %d\n", rank, bestErrorOwnerID);
 
     return bestErrorOwnerID;
 }
@@ -156,7 +153,7 @@ void CoevolutionEngineSTMPI::shareBestResultGenotype(const int &ownerID)
     }
 
     MPI_Bcast(buffer.data(), size * sizeof(double), MPI_BYTE, ownerID, MPI_COMM_WORLD);
-    DEBUG("[%d] Getting best Genotype buffer from = %d\n", rank, ownerID);
+//    DEBUG("[%d] Getting best Genotype buffer from = %d\n", rank, ownerID);
 
     if (rank == ownerID)
         return;

@@ -83,15 +83,35 @@ int main(int argc, char* argv[]) {
 ////        plt::show();
     }
 #elif defined(MODE_MPI)
+
     std::function<double(Genotype)> optimizedFunc1;
     std::function<double(Genotype)> optimizedFunc2;
     initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
-    bool calculationsPerformed = performCalculationsMPI(optimizedFunc1, 400, 48, 50, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3);
-    if(!calculationsPerformed)
-        return -1;
-#else
+    std::vector<int> sizes = {2,10,20,50,100};
+    std::vector<int> pops = {200,200,400,600,600};
+    std::vector<int> childs = {32,32,64,96,192};
+    std::ostringstream popInitStr;
+    MPI_Init(nullptr,nullptr);
+    int comm_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-#endif
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    for(int i = 0; i < sizes.size(); ++i)
+    {
+        if(rank == 0)
+            std::cout << "GenSize= " << sizes[i] << std::endl;
+        performCalculationsMPI(optimizedFunc1, pops[i], childs[i], sizes[i], -40, 40,
+                               CoevolutionEngineST::DESIRED_ERROR, "Function1", 0.3);
 
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        if(rank == 0)
+            std::cout << "GenSize= " << sizes[i] << std::endl;
+        performCalculationsMPI(optimizedFunc1, pops[i], childs[i], sizes[i], -30, 30,
+                               CoevolutionEngineST::DESIRED_ERROR, "Function2", 0.3);
+    }
+    MPI_Finalize();
     return 0;
+#endif
 }
