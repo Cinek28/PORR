@@ -39,3 +39,35 @@ In order to build project with Visual Studio, GCC compiler needs to be set.
 Detailed instruction on how to set compiler for Visual Studio in project settings here:
 [Using GCC on Visual Studio 2017](https://blogs.msdn.microsoft.com/vcblog/2017/03/07/use-any-c-compiler-with-visual-studio/)
 
+## 3 versions of program:
+
+In order to compile program to run as sequential, you need to add definition:
+
+````
+#define MODE_SEQ
+````
+
+For parallel version using OpenMP the definition is:
+
+````
+#define MODE_OMP
+````
+
+For parallel version using MPI the definition is:
+
+````
+#define MODE_MPI
+````
+
+## Running MPI version of algorithm:
+
+In order to run MPI version you need to use 'mpirun' in the same folder with compiled source. 
+Mpirun is provided with MPICH:
+
+Command syntax:
+
+````
+mpirun -np <no_of_processes> ./PORR
+````
+ 
+
