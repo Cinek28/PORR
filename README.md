@@ -1,8 +1,10 @@
 #### Parallel and distributed programming
 
 The project is developed for university course completion. The main task of the project is to
-learn OpenMP and OpenCL to check differences in computing between sequential and parallel programs.
-The project developed using C++ language.
+learn OpenMP and MPICH to check differences in computing between sequential and parallel programs.
+The project developed using C++ language. The main task of the project is implementation of
+coevolution algorithm to solve for multidimensional function minimum. The algorithm was based
+on description found here: [Coevolution algorithm](http://edu.pjwstk.edu.pl/wyklady/nai/scb/wyklad10/w10.htm)
 
 
 #### Tasks:
