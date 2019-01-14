@@ -12,15 +12,13 @@ Prepare an algorithm in 3 versions:
 
 * paralleled version on shared memory machines
 
-* paralleled version using GPUs
-
 * paralleled version using distributed machines (CPUs with local memory)
 
 #### Dependencies:
 
 * CMake 2.8 or newer 
 * OpenMP 4.0 or newer
-* OpenCL (version not specified yet)
+* MPICH
 * matplotlib-cpp for GUI and plots preparation
 
 #### Building:
