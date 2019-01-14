@@ -122,9 +122,9 @@ bool performCalculationsMPI(const std::function<double(Genotype)> optimizedFunc,
     int iters = 0;
 
     CoevolutionEngineSTMPI cov;
-    for(int i = 0; i < 5; ++i)
+    for(int i = 0; i < 1; ++i)
     {
-        cov.setPopulation(popSize, childCnt, genSize, lowerBound, upperBound);
+        cov.setPopulation(popSize/8, childCnt/8, genSize, lowerBound, upperBound);
         cov.setDesiredError(0.1);
         cov.setNoOfItersWithoutImprov(100);
 
@@ -166,9 +166,9 @@ bool performCalculationsMPI(const std::function<double(Genotype)> optimizedFunc,
     }
     if(rank == 0)
     {
-        meanExecutionTime = meanExecutionTime/5.;
-        meanETResult = meanETResult/5.;
-        meanETSingleIterationTime = meanETSingleIterationTime/5.;
+        meanExecutionTime = meanExecutionTime;
+        meanETResult = meanETResult;
+        meanETSingleIterationTime = meanETSingleIterationTime;
 
         resultStr << optimizedFuncName << ", n: " << genSize <<
                   ", meanET[s]: " << meanExecutionTime << ", meanSingleET[ms]: " << meanETSingleIterationTime << ", meanY: " << meanETResult <<
