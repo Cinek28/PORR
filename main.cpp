@@ -9,7 +9,7 @@
 
 namespace plt = matplotlibcpp;
 
-#define MODE_MPI
+#define MODE_SEQ
 
 int main(int argc, char* argv[]) {
 
@@ -37,9 +37,65 @@ int main(int argc, char* argv[]) {
         calculationsPerformed = performCalculations(cov, optimizedFunc2, 400, 48, 30, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, 1);
         if(!calculationsPerformed)
             return -1;
-    }
 #elif defined(MODE_OMP)
-    testOMP();
+    CoevolutionEngineST cov;
+    std::function<double(Genotype)> optimizedFunc1;
+    std::function<double(Genotype)> optimizedFunc2;
+    initializeOptimizationFunctions(optimizedFunc1, optimizedFunc2);
+
+    int numberOfThreads = 8;
+    bool calculationsPerformed;
+    cov.setDesiredError(0.05);
+    cov.setNoOfItersWithoutImprov(100);
+    omp_set_dynamic(0);
+
+    for(int threads=1;threads <= 12; threads++){
+        if(!(threads == 1 || threads == 4 || threads == 8 || threads == 12))
+            continue;
+        omp_set_num_threads(threads);
+        cov.setNoOfItersWithoutImprov(100);
+
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 200, 32, 2, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 200, 32, 2, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 200, 32, 10, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 200, 32, 10, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+
+        cov.setNoOfItersWithoutImprov(80);
+
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 400, 64, 20, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 400, 64, 20, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+
+        cov.setNoOfItersWithoutImprov(65);
+
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 600, 96, 50, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 600, 96, 50, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+
+        cov.setNoOfItersWithoutImprov(50);
+
+        calculationsPerformed = performCalculations(cov, optimizedFunc1, 1200, 192, 100, -40, 40, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function1", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+        calculationsPerformed = performCalculations(cov, optimizedFunc2, 1200, 192, 100, -30, 30, CoevolutionEngineST::NO_OF_ITERS_WITHOUT_IMPROV, "Function2", 0.3, threads);
+        if(!calculationsPerformed)
+            return -1;
+    }
 
 #elif defined(MODE_MPI)
 

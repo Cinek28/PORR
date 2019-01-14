@@ -62,12 +62,6 @@ const Genotype* CoevolutionEngineSTMPI::solve(std::function<double(Genotype)> fu
                 break;
             }
         }
-
-//        if(pCalcPopulation->at(0)->size() == 2)
-//        {
-//            x.push_back(iterationsCounter);
-//            y.push_back(func(*pCalcPopulation->at(0)));
-//        }
     }
     DEBUG("[%d] Out of while loop.\n", rank);
     MPI_Barrier(MPI_COMM_WORLD);
@@ -83,7 +77,7 @@ int CoevolutionEngineSTMPI::getBestResultOwner()
     double error = getBestFitError(pCalcPopulation->at(0));
     if (rank != 0) {
         // slave
-//        DEBUG("[%d] Sending best result = %f to master\n", rank, error);
+        DEBUG("[%d] Sending best result = %f to master\n", rank, error);
         MPI_Send(&error, 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     } else {
         // master
@@ -95,14 +89,14 @@ int CoevolutionEngineSTMPI::getBestResultOwner()
         for (auto i = 1; i < comm_size; ++i) {
             MPI_Recv(&tempError, 1, MPI_DOUBLE, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &status);
             results.emplace_back(tempError, status.MPI_SOURCE);
-//            DEBUG("[0] Receiving error = %f from %d\n", tempError, status.MPI_SOURCE);
+            DEBUG("[0] Receiving error = %f from %d\n", tempError, status.MPI_SOURCE);
         }
         std::sort(results.begin(), results.end());
         bestErrorOwnerID = results.begin()->second;
     }
     MPI_Bcast(&bestErrorOwnerID, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-//    DEBUG("[%d] bestErrorOwnerID = %d\n", rank, bestErrorOwnerID);
+    DEBUG("[%d] bestErrorOwnerID = %d\n", rank, bestErrorOwnerID);
 
     return bestErrorOwnerID;
 }
@@ -153,7 +147,7 @@ void CoevolutionEngineSTMPI::shareBestResultGenotype(const int &ownerID)
     }
 
     MPI_Bcast(buffer.data(), size * sizeof(double), MPI_BYTE, ownerID, MPI_COMM_WORLD);
-//    DEBUG("[%d] Getting best Genotype buffer from = %d\n", rank, ownerID);
+    DEBUG("[%d] Getting best Genotype buffer from = %d\n", rank, ownerID);
 
     if (rank == ownerID)
         return;
