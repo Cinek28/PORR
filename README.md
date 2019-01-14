@@ -18,7 +18,7 @@ Prepare an algorithm in 3 versions:
 
 * CMake 2.8 or newer 
 * OpenMP 4.0 or newer
-* MPICH
+* MPICH 3.3
 * matplotlib-cpp for GUI and plots preparation
 
 #### Building:
